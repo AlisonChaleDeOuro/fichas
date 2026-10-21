@@ -121,8 +121,15 @@ tr.click:hover td{background:var(--surface2)}
 .chip{font:600 14px var(--body);white-space:nowrap;border-radius:99px;border:1px solid var(--line);background:var(--surface);color:var(--ink);padding:6px 12px;cursor:pointer}
 .chip[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
 .ing td{padding:6px 8px}
-.ing td:first-child{min-width:170px}
-.ing .num{width:96px}
+
+.ing .num{width:84px}
+.fgrid{grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);align-items:start}
+.costgrid{display:grid;grid-template-columns:1fr 1fr}
+.costgrid .cg2{border-left:1px solid var(--line)}
+@media (max-width:900px){.fgrid{grid-template-columns:1fr}.costgrid{grid-template-columns:1fr}.costgrid .cg2{border-left:0;border-top:1px solid var(--line)}}
+.ing th,.ing td{padding:8px 7px}
+.ing th{white-space:normal;vertical-align:bottom}
+.ing td:first-child{white-space:normal;min-width:120px}
 .note{font-size:13px;color:var(--muted)}
 .empty{padding:28px;text-align:center;color:var(--muted)}
 .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(16px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--bg);padding:9px 16px;border-radius:99px;font-weight:600;font-size:14px;z-index:20;max-width:calc(100% - 32px)}
@@ -194,6 +201,31 @@ const S = { tab:'painel', config:null, insumos:{}, produtos:[], sel:null, canWri
 let pendingRender = false;
 
 // ---------- cálculo ----------
+const CUSTOS_ORIGINAIS = [
+  {id:'transporte', nome:'Transporte', valor:12, base:'lote', tipo:'variavel'},
+  {id:'armazenamento', nome:'Armazenamento', valor:2.5, base:'lote', tipo:'variavel'},
+  {id:'perda', nome:'Taxa de Perda', valor:12, base:'lote', tipo:'variavel'},
+  {id:'roi', nome:'ROI ( Retorno do Capital Investido)', valor:10, base:'lote', tipo:'variavel'},
+  {id:'embalagem', nome:'Embalagem', valor:120, base:'lote', tipo:'variavel'},
+  {id:'comissao', nome:'Comissão de Vendas', valor:1.5, base:'kg', tipo:'variavel'},
+  {id:'energia', nome:'Energia', valor:12, base:'lote', tipo:'fixo'},
+  {id:'funcionarios', nome:'Funcionarios', valor:150, base:'lote', tipo:'fixo'},
+  {id:'adm', nome:'Despesas Adm', valor:20, base:'lote', tipo:'fixo'},
+  {id:'erro', nome:'Margem De Erro', valor:200, base:'lote', tipo:'fixo'},
+  {id:'imposto', nome:'Imposto', valor:117.6, base:'lote', tipo:'fixo'}
+];
+const OLD_KEYS={transporte:'transporte',armazenamento:'armazenamento',perda:'perda',embalagem:'embalagem',comissao:'comissaoKg',energia:'energia',funcionarios:'funcionarios',adm:'adm',imposto:'imposto'};
+function migrateConfig(c){
+  c={...(c||{})};
+  if(!Array.isArray(c.custos)){
+    c.custos=CUSTOS_ORIGINAIS.map(x=>{ const k=OLD_KEYS[x.id]; return {...x, valor:(k && c[k]!=null)? +c[k] : x.valor}; });
+    Object.values(OLD_KEYS).forEach(k=>delete c[k]);
+  } else c.custos=c.custos.map(x=>({...x}));
+  if(c.peso==null) c.peso=0.4;
+  return c;
+}
+function itemLote(x,kg){ return x.base==='kg' ? (+x.valor||0)*kg : (+x.valor||0); }
+function porcaoLbl(){ return N3.format((+(S.config&&S.config.peso)||0.4)*1000)+'g'; }
 function calc(p){
   const c = S.config || {};
   let kg=0, ing=0;
@@ -201,15 +233,20 @@ function calc(p){
   for (const id in rec){ const q=+rec[id]||0; kg+=q; ing+=q*(+(S.insumos[id]?.preco)||0); }
   const peso = +c.peso||0.4;
   const pac = peso>0 ? kg/peso : 0;
-  const outrosLote = (+c.embalagem||0)+(+c.transporte||0)+(+c.armazenamento||0)+(+c.perda||0)+(+c.imposto||0)+(+c.comissaoKg||0)*kg;
-  const fixosLote = (+c.funcionarios||0)+(+c.energia||0)+(+c.adm||0);
+  const custos = c.custos||[];
+  const varItens = custos.filter(x=>x.tipo!=='fixo'), fixItens = custos.filter(x=>x.tipo==='fixo');
+  const outrosLote = varItens.reduce((s,x)=>s+itemLote(x,kg),0);
+  const fixosLote = fixItens.reduce((s,x)=>s+itemLote(x,kg),0);
   const ingP = pac? ing/pac : 0, outP = pac? outrosLote/pac : 0, fxP = pac? fixosLote/pac : 0;
   const cv = ingP+outP, preco=+p.preco||0, mc=preco-cv, mcp = preco? mc/preco : 0;
   const meta = +c.meta||0;
   const precoMeta = meta<1 ? Math.ceil((cv/(1-meta))/0.5)*0.5 : NaN;
   const lucro = mc-fxP;
   const status = mc<0 ? 'bad' : (mcp<meta ? 'warn':'ok');
-  return {kg,pac,ing,outrosLote,fixosLote,ingP,outP,fxP,cv,preco,mc,mcp,precoMeta,lucro,lucrop:preco?lucro/preco:0,status};
+  const totalLote = ing+outrosLote+fixosLote;
+  const custoPorcao = pac? totalLote/pac : 0, custoKg = kg? totalLote/kg : 0, precoKg = peso? preco/peso : 0;
+  const margemLucro = preco? (preco-custoPorcao)/preco : 0;
+  return {kg,pac,peso,ing,outrosLote,fixosLote,varItens,fixItens,ingP,outP,fxP,cv,preco,mc,mcp,precoMeta,lucro,lucrop:preco?lucro/preco:0,status,totalLote,custoPorcao,custoKg,precoKg,margemLucro};
 }
 const STATUS = {ok:'OK', warn:'Abaixo da meta', bad:'Prejuízo'};
 
@@ -281,14 +318,14 @@ function renderPainel(){
     <div class="kpi"><div class="l">Pacotes/mês para empatar</div><div class="v">${isFinite(pe)?pe.toLocaleString('pt-BR'):'–'}</div><div class="h">com fixos de ${money(fixos)}/mês</div></div>
   </div>
   <div class="scroll"><table id="painelTbl">
-    <thead><tr><th>Produto</th><th>Preço</th><th>Custo variável</th><th>Margem R$</th><th>Margem %</th><th>Situação</th><th>Preço p/ meta</th><th>Lucro R$</th></tr></thead>
+    <thead><tr><th>Produto</th><th>Preço de Venda Porção ${porcaoLbl()}</th><th>Custo variável</th><th>Margem R$</th><th>Margem %</th><th>Situação</th><th>Preço p/ meta</th><th>Custo Porção ${porcaoLbl()}</th><th>Lucro R$</th></tr></thead>
     <tbody>${rows.map(({p,r})=>`<tr class="click" data-open="${esc(p.id)}" tabindex="0">
       <td class="strong">${esc(p.nome)}</td><td>${money(r.preco)}</td><td>${money(r.cv)}</td>
       <td class="${r.mc<0?'neg':'mc'}">${money(r.mc)}</td><td class="${r.mc<0?'neg':'mc'}">${pct(r.mcp)}</td>
       <td><span class="pill ${r.status}">${STATUS[r.status]}</span></td>
-      <td class="strong">${money(r.precoMeta)}</td><td>${money(r.lucro)}</td></tr>`).join('')}</tbody>
+      <td class="strong">${money(r.precoMeta)}</td><td>${money(r.custoPorcao)}</td><td>${money(r.lucro)}</td></tr>`).join('')}</tbody>
   </table></div>
-  <div class="legend"><span><b>Margem</b> = preço − custos variáveis (ingredientes, tripa, embalagem, frete, perda, comissão, imposto)</span><span><b>Lucro</b> = margem − custos fixos do lote</span><span>Toque em um produto para abrir a ficha</span></div>`;
+  <div class="legend"><span><b>Margem</b> = preço − (CUSTO COM CMU + CUSTOS VARIAVEIS)</span><span><b>Lucro</b> = margem − CUSTOS FIXOS</span><span>Os custos ficam na aba Custos do lote</span><span>Toque em um produto para abrir a ficha</span></div>`;
   app.querySelectorAll('[data-open]').forEach(tr=>{ const go=()=>{S.sel=tr.dataset.open; S.tab='fichas'; render(); window.scrollTo(0,0);}; tr.addEventListener('click',go); tr.addEventListener('keydown',e=>{if(e.key==='Enter')go();}); });
   const m=$('#meta'); if(m){ m.addEventListener('input',()=>{ S.config={...S.config, meta: parseNum(m.value)/100}; refreshPainelTable(); save('config/lote', S.config); }); }
 }
@@ -310,23 +347,25 @@ function renderFichas(){
   <div class="chips" role="group" aria-label="Escolha a linguiça">
     ${S.produtos.map(x=>`<button class="chip" data-sel="${esc(x.id)}" aria-pressed="${x.id===p.id}">${esc(x.nome)}</button>`).join('')}
   </div>
-  <div class="grid2">
+  <div class="grid2 fgrid">
     <div class="stack" style="min-width:0">
       <div class="panel">
         <div class="tag">Ficha técnica gerencial</div>
         <div class="fields" style="margin-top:8px">
-          <label class="field" style="grid-column:1/-1"><span>Nome do produto</span><input class="txt" id="pNome" value="${esc(p.nome)}"${dis()}></label>
-          <label class="field"><span>Preço do pacote (R$)</span>${numIn('pPreco', p.preco)}</label>
+          <label class="field" style="grid-column:1/-1"><span>Produto</span><input class="txt" id="pNome" value="${esc(p.nome)}"${dis()}></label>
           <label class="field"><span>Classificação</span><input class="txt" id="pClass" value="${esc(p.classificacao||'Linguiça Fresca')}"${dis()}></label>
+          <label class="field"><span>Receita</span>${numIn('pReceita', p.receitaBase ?? 40)}</label>
+          <label class="field"><span>Preço de Venda Porção ${porcaoLbl()}</span>${numIn('pPreco', p.preco)}</label>
         </div>
       </div>
       <div class="panel" style="padding:0;overflow:hidden">
-        <div style="padding:14px 16px 6px" class="row"><h3 style="margin:0">Ingredientes do lote</h3><span class="spacer"></span><span class="note">quantidade em kg/L</span></div>
+        <div style="padding:14px 16px 6px" class="row"><h3 style="margin:0">CUSTO COM CMU</h3><span class="spacer"></span><span class="note">ingredientes do lote</span></div>
         <div style="overflow-x:auto"><table class="ing">
-          <thead><tr><th>Ingrediente</th><th>Qtd.</th><th>Preço</th><th>Custo</th><th></th></tr></thead>
+          <thead><tr><th>Ingredientes</th><th>Quantidade (KG)</th><th>Porcentagem (KG)</th><th>Custo Unitario</th><th>Custo Total</th><th></th></tr></thead>
           <tbody>${usados.map(id=>{ const i=S.insumos[id]||{nome:'(insumo apagado)',preco:0,unid:''}; const q=+rec[id]||0; return `<tr>
             <td>${esc(i.nome)} <span class="note">${esc(i.unid||'')}</span></td>
             <td>${numIn('q-'+id, q, `data-q="${esc(id)}"`)}</td>
+            <td class="note" id="pc-${esc(id)}"></td>
             <td class="note">${money(+i.preco||0)}</td>
             <td id="c-${esc(id)}">${money(q*(+i.preco||0))}</td>
             <td>${S.canWrite?`<button class="btn ghost" data-rm="${esc(id)}" aria-label="Remover ${esc(i.nome)}">✕</button>`:''}</td></tr>`;}).join('')}</tbody>
@@ -345,13 +384,15 @@ function renderFichas(){
         <button class="btn danger" id="del">Excluir ficha</button>
       </div>`:''}
     </div>
-  </div>`;
+  </div>
+  <div class="panel costgrid" style="padding:0;overflow:hidden;margin-top:16px" id="costTables"></div>`;
   fillCalc(p);
   app.querySelectorAll('[data-sel]').forEach(b=>b.addEventListener('click',()=>{S.sel=b.dataset.sel; render();}));
   const upd = (patch)=>{ Object.assign(p, patch); fillCalc(p); saveProduto(p); };
   $('#pNome')?.addEventListener('input',e=>{ p.nome=e.target.value; const chip=app.querySelector(`[data-sel="${CSS.escape(p.id)}"]`); if(chip) chip.textContent=p.nome||'Sem nome'; saveProduto(p); });
   $('#pClass')?.addEventListener('input',e=>{ p.classificacao=e.target.value; saveProduto(p); });
   $('#pPreco')?.addEventListener('input',e=>upd({preco:parseNum(e.target.value)}));
+  $('#pReceita')?.addEventListener('input',e=>{ p.receitaBase=parseNum(e.target.value); saveProduto(p); });
   app.querySelectorAll('[data-q]').forEach(inp=>inp.addEventListener('input',()=>{ const id=inp.dataset.q; p.receita={...p.receita,[id]:parseNum(inp.value)}; const i=S.insumos[id]; const c=$('#c-'+CSS.escape(id)); if(c) c.textContent=money((+p.receita[id]||0)*(+i?.preco||0)); fillCalc(p); saveProduto(p); }));
   app.querySelectorAll('[data-rm]').forEach(b=>b.addEventListener('click',()=>{ const r={...p.receita}; delete r[b.dataset.rm]; p.receita=r; saveProduto(p,true); render(); }));
   $('#addIng')?.addEventListener('change',e=>{ const id=e.target.value; if(!id) return; p.receita={...p.receita,[id]:0}; saveProduto(p,true); render(); setTimeout(()=>{ $('#q-'+CSS.escape(id))?.focus(); },0); });
@@ -360,37 +401,62 @@ function renderFichas(){
   $('#dup')?.addEventListener('click',()=>novoProduto(p));
   const del=$('#del'); if(del){ let armed=false, t; del.addEventListener('click',()=>{ if(!armed){ armed=true; del.classList.add('armed'); del.textContent='Toque de novo para excluir'; t=setTimeout(()=>{armed=false; del.classList.remove('armed'); del.textContent='Excluir ficha';},4000); return; } clearTimeout(t); const id=p.id; S.produtos=S.produtos.filter(x=>x.id!==id); S.sel=null; saveNow('produtos/'+id, null, 'delete'); toast('Ficha excluída'); render(); }); }
 }
+function costRows(items, r, col){
+  const tot = items.reduce((s,x)=>s+itemLote(x,r.kg),0);
+  return `<div style="overflow-x:auto"><table class="ing">
+    <thead><tr><th>${col}</th><th>CUSTO</th><th>Custo Por (KG)</th><th>Por porção ${porcaoLbl()}</th></tr></thead>
+    <tbody>${items.map(x=>{ const v=itemLote(x,r.kg); return `<tr><td>${esc(x.nome)}${x.base==='kg'?` <span class="note">(${money(+x.valor||0)}/kg)</span>`:''}</td><td>${money(v)}</td><td>${money(r.kg? v/r.kg : 0)}</td><td>${money(r.pac? v/r.pac : 0)}</td></tr>`; }).join('') || `<tr><td colspan="4" class="note">Nenhum custo cadastrado</td></tr>`}</tbody>
+    <tbody><tr><td class="strong">TOTAL</td><td class="strong">${money(tot)}</td><td class="strong">${money(r.kg? tot/r.kg : 0)}</td><td class="strong">${money(r.pac? tot/r.pac : 0)}</td></tr></tbody>
+  </table></div>`;
+}
 function fillCalc(p){
   const r = calc(p), el=$('#calcPanel'); if(!el) return;
+  const rec=p.receita||{};
+  for(const id in rec){ const c=document.getElementById('pc-'+id); if(c) c.textContent=pct(r.kg? (+rec[id]||0)/r.kg : 0); }
+  const ct=$('#costTables');
+  if(ct){
+    ct.innerHTML = `<div style="min-width:0"><div style="padding:14px 16px 6px" class="row"><h3 style="margin:0">CUSTOS VARIAVEIS</h3><span class="spacer"></span><a href="#" class="note" data-gocustos>Editar custos</a></div>
+      ${costRows(r.varItens, r, 'VARIAVEL')}</div>
+      <div style="min-width:0" class="cg2"><div style="padding:14px 16px 6px" class="row"><h3 style="margin:0">CUSTOS FIXOS</h3></div>
+      ${costRows(r.fixItens, r, 'FIXA')}</div>`;
+    ct.querySelector('[data-gocustos]')?.addEventListener('click',e=>{ e.preventDefault(); S.tab='custos'; render(); window.scrollTo(0,0); });
+  }
+  const L=porcaoLbl();
   el.innerHTML = `
-    <h3>Resultado por pacote</h3>
+    <h3>Resumo da ficha</h3>
+    <div class="fields">
+      <div class="field"><span>Quantidade (Bruta)</span><b>${N2.format(r.kg)} kg</b></div>
+      <div class="field"><span>Peso Porção</span><b>${N3.format(r.peso*1000)} Gramas</b></div>
+      <div class="field"><span>Custo Porção ${L}</span><b>${money(r.custoPorcao)}</b></div>
+      <div class="field"><span>Preço de Venda Porção ${L}</span><b>${money(r.preco)}</b></div>
+      <div class="field"><span>Custo Kg</span><b>${money(r.custoKg)}</b></div>
+      <div class="field"><span>Preço de Venda Kg</span><b>${money(r.precoKg)}</b></div>
+      <div class="field"><span>CUSTO TOTAL</span><b>${money(r.totalLote)}</b></div>
+      <div class="field"><span>Margem de Lucro ${L}</span><b class="${r.margemLucro<0?'neg':''}">${pct(r.margemLucro)}</b></div>
+    </div>
+    <h3 style="margin-top:18px">Resultado por porção ${L}</h3>
     <div class="cascade">
-      <div><span>Preço de venda</span><b>${money(r.preco)}</b></div>
-      <div><span>(−) Ingredientes</span><span>${money(r.ingP)}</span></div>
-      <div><span>(−) Embalagem, frete, perda, comissão, imposto</span><span>${money(r.outP)}</span></div>
+      <div><span>Preço de Venda Porção</span><b>${money(r.preco)}</b></div>
+      <div><span>(−) CUSTO COM CMU</span><span>${money(r.ingP)}</span></div>
+      <div><span>(−) CUSTOS VARIAVEIS</span><span>${money(r.outP)}</span></div>
       <div class="big ${r.mc<0?'neg':''}"><span>Margem de contribuição<br><small>${pct(r.mcp)} do preço</small></span><span>${money(r.mc)}</span></div>
-      <div><span>(−) Custos fixos do lote</span><span>${money(r.fxP)}</span></div>
-      <div class="tot"><span>Lucro por pacote</span><span class="${r.lucro<0?'neg':''}">${money(r.lucro)} <small>(${pct(r.lucrop)})</small></span></div>
+      <div><span>(−) CUSTOS FIXOS</span><span>${money(r.fxP)}</span></div>
+      <div class="tot"><span>Lucro por porção</span><span class="${r.lucro<0?'neg':''}">${money(r.lucro)} <small>(${pct(r.lucrop)})</small></span></div>
     </div>
     <div class="fields" style="margin-top:14px">
       <div class="field"><span>Situação</span><div><span class="pill ${r.status}">${STATUS[r.status]}</span></div></div>
       <div class="field"><span>Preço mínimo</span><b>${money(r.cv)}</b></div>
       <div class="field"><span>Preço p/ meta de ${pct(+S.config.meta||0)}</span><b>${money(r.precoMeta)}</b></div>
-    </div>
-    <div class="fields" style="margin-top:14px;padding-top:12px;border-top:1px solid var(--line)">
-      <div class="field"><span>Rendimento do lote</span><b>${N2.format(r.kg)} kg</b></div>
-      <div class="field"><span>Pacotes por lote</span><b>${N2.format(r.pac)}</b></div>
-      <div class="field"><span>Custo dos ingredientes</span><b>${money(r.ing)}</b></div>
-      <div class="field"><span>Faturamento do lote</span><b>${money(r.pac*r.preco)}</b></div>
+      <div class="field"><span>Porções por lote</span><b>${N2.format(r.pac)}</b></div>
     </div>`;
 }
-function saveProduto(p, now){ const body={nome:p.nome||'', classificacao:p.classificacao||'', preco:+p.preco||0, ordem:+p.ordem||0, receita:p.receita||{}}; (now?saveNow:save)('produtos/'+p.id, body); }
+function saveProduto(p, now){ const body={nome:p.nome||'', classificacao:p.classificacao||'', preco:+p.preco||0, receitaBase:+(p.receitaBase ?? 40), ordem:+p.ordem||0, receita:p.receita||{}}; (now?saveNow:save)('produtos/'+p.id, body); }
 function slug(s){ return String(s).normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,40)||'item'; }
 function novoProduto(base){
   const nome = base&&base.nome ? base.nome+' (cópia)' : 'Nova linguiça';
   const id = slug(nome)+'-'+Date.now().toString(36);
   const ordem = Math.max(0,...S.produtos.map(x=>+x.ordem||0))+1;
-  const p = {id, nome, classificacao: base?.classificacao||'Linguiça Fresca', preco: base&&base.preco? +base.preco : 14, ordem, receita: base&&base.receita? {...base.receita} : {}};
+  const p = {id, nome, classificacao: base?.classificacao||'Linguiça Fresca', preco: base&&base.preco? +base.preco : 14, receitaBase: base&&base.receitaBase!=null? +base.receitaBase : 40, ordem, receita: base&&base.receita? {...base.receita} : {}};
   S.produtos.push(p); S.sel=id; saveProduto(p,true); render(); setTimeout(()=>{ const n=$('#pNome'); n?.focus(); n?.select(); },0);
 }
 
@@ -417,16 +483,33 @@ function renderInsumos(){
   $('#novoIns')?.addEventListener('click',()=>{ const id='ins-'+Date.now().toString(36); const ordem=Math.max(0,...Object.values(S.insumos).map(i=>+i.ordem||0))+1; S.insumos={...S.insumos,[id]:{nome:'Novo insumo',unid:'KG',preco:0,ordem}}; saveNow('insumos/'+id,S.insumos[id]); render(); const n=app.querySelector(`[data-n="${id}"]`); n?.focus(); n?.select(); });
 }
 
-const CFG = [
-  ['Custos variáveis do lote', [['embalagem','Embalagem e etiqueta (R$/lote)'],['transporte','Transporte / entrega (R$/lote)'],['armazenamento','Armazenamento no frio (R$/lote)'],['perda','Taxa de perda (R$/lote)'],['imposto','Imposto sobre a venda (R$/lote)'],['comissaoKg','Comissão de vendas (R$/kg)']]],
-  ['Custos fixos do lote', [['funcionarios','Funcionários (R$/lote)'],['energia','Energia (R$/lote)'],['adm','Despesas administrativas (R$/lote)']]],
-  ['Fábrica', [['peso','Peso do pacote (kg)'],['fixosMes','Custos fixos da fábrica no mês (R$)']]]
-];
 function renderCustos(){
   const c=S.config;
-  app.innerHTML = `<h2>Custos do lote</h2><p class="lead">Valores iguais para todas as linguiças. Os custos variáveis entram na margem de contribuição. Os fixos só entram no lucro.</p>
-  <div class="stack">${CFG.map(([t,fs])=>`<div class="panel"><h3>${t}</h3><div class="fields">${fs.map(([k,l])=>`<label class="field"><span>${l}</span>${numIn('cfg-'+k, c[k], `data-c="${k}"`)}</label>`).join('')}</div></div>`).join('')}
-  <p class="note">Os R$ 15.000 de custos fixos mensais são um valor de exemplo. Troque pelo total real de salários, energia, aluguel e administração da fábrica. O imposto está como valor fixo por lote, igual à ficha original. O ideal é um percentual sobre a venda.</p>
+  const sec=(tipo,title,col)=>{
+    const items=(c.custos||[]).map((x,i)=>({x,i})).filter(o=>(o.x.tipo==='fixo')===(tipo==='fixo'));
+    return `<div class="panel" style="padding:0;overflow:hidden">
+      <div style="padding:14px 16px 6px"><h3 style="margin:0">${title}</h3></div>
+      <div style="overflow-x:auto"><table class="ing">
+        <thead><tr><th>${col}</th><th>CUSTO (R$)</th><th>Cobrado</th><th>Tipo</th><th></th></tr></thead>
+        <tbody>${items.map(({x,i})=>`<tr>
+          <td><input class="txt" data-cn="${i}" value="${esc(x.nome)}" style="min-width:210px"${dis()}></td>
+          <td>${numIn('cv-'+i, x.valor, `data-cv="${i}" style="width:104px"`)}</td>
+          <td><select class="txt" data-cb="${i}" style="width:auto"${dis()}><option value="lote"${x.base!=='kg'?' selected':''}>por lote</option><option value="kg"${x.base==='kg'?' selected':''}>por kg</option></select></td>
+          <td><select class="txt" data-ct="${i}" style="width:auto"${dis()}><option value="variavel"${x.tipo!=='fixo'?' selected':''}>Variável</option><option value="fixo"${x.tipo==='fixo'?' selected':''}>Fixo</option></select></td>
+          <td>${S.canWrite?`<button class="btn ghost" data-cx="${i}" aria-label="Excluir ${esc(x.nome)}">✕</button>`:''}</td></tr>`).join('') || `<tr><td colspan="5" class="note">Nenhum custo neste grupo</td></tr>`}</tbody>
+      </table></div>
+      ${S.canWrite?`<div style="padding:12px 16px;border-top:1px solid var(--line)"><button class="btn" data-cadd="${tipo}">+ Adicionar ${tipo==='fixo'?'custo fixo':'custo variável'}</button></div>`:''}
+    </div>`;
+  };
+  app.innerHTML = `<h2>Custos do lote</h2><p class="lead">Os custos da ficha técnica, iguais para todas as linguiças. Os CUSTOS VARIAVEIS entram na margem de contribuição e os CUSTOS FIXOS só entram no lucro. Qualquer mudança aqui atualiza o Painel e todas as Fichas.</p>
+  <div class="stack">
+  ${sec('variavel','CUSTOS VARIAVEIS','VARIAVEL')}
+  ${sec('fixo','CUSTOS FIXOS','FIXA')}
+  <p class="note" style="margin:0">Para mudar um custo de grupo, troque o Tipo. "Por kg" multiplica o valor pelos kg do lote, como a Comissão de Vendas (R$ 1,50 por kg).</p>
+  <div class="panel"><h3>Fábrica</h3><div class="fields">
+    <label class="field"><span>Peso Porção (kg)</span>${numIn('cfg-peso', c.peso, 'data-c="peso"')}</label>
+    <label class="field"><span>Custos fixos da fábrica no mês (R$)</span>${numIn('cfg-fixosMes', c.fixosMes, 'data-c="fixosMes"')}</label>
+  </div><p class="note" style="margin-bottom:0">Os R$ 15.000 de custos fixos mensais são um valor de exemplo, usado no ponto de equilíbrio do Painel. Troque pelo total real da fábrica.</p></div>
   <div class="panel"><h3>Backup dos dados</h3>
     <p class="note" style="margin-top:0">${CLOUD.ref ? 'As alterações ficam salvas na nuvem e aparecem em todos os aparelhos de quem tem acesso. O backup é uma cópia de segurança extra: exporte um por semana e guarde no computador ou no Google Drive.' : 'Modo local: as alterações ficam salvas só neste aparelho. Para levar para outro, exporte o backup aqui e importe lá.'}</p>
     <div class="row">
@@ -440,7 +523,14 @@ function renderCustos(){
   });
   $('#bkFile').addEventListener('change',e=>importBackup(e.target.files[0]));
   
-  app.querySelectorAll('[data-c]').forEach(x=>x.addEventListener('input',()=>{ S.config={...S.config,[x.dataset.c]:parseNum(x.value)}; save('config/lote', S.config); }));
+  app.querySelectorAll('[data-c]').forEach(x=>x.addEventListener('input',()=>{ S.config={...S.config,[x.dataset.c]:parseNum(x.value)}; save(); }));
+  const setItem=(i,patch,rerender)=>{ S.config={...S.config, custos:S.config.custos.map((x,k)=>k===i?{...x,...patch}:x)}; save(); if(rerender) render(); };
+  app.querySelectorAll('[data-cn]').forEach(x=>x.addEventListener('input',()=>setItem(+x.dataset.cn,{nome:x.value})));
+  app.querySelectorAll('[data-cv]').forEach(x=>x.addEventListener('input',()=>setItem(+x.dataset.cv,{valor:parseNum(x.value)})));
+  app.querySelectorAll('[data-cb]').forEach(x=>x.addEventListener('change',()=>setItem(+x.dataset.cb,{base:x.value})));
+  app.querySelectorAll('[data-ct]').forEach(x=>x.addEventListener('change',()=>{ setItem(+x.dataset.ct,{tipo:x.value},true); toast(x.value==='fixo'?'Movido para CUSTOS FIXOS':'Movido para CUSTOS VARIAVEIS'); }));
+  app.querySelectorAll('[data-cx]').forEach(b=>{ let armed=false,t; b.addEventListener('click',()=>{ if(!armed){ armed=true; b.textContent='Excluir?'; b.classList.add('danger'); t=setTimeout(()=>{armed=false; b.textContent='✕'; b.classList.remove('danger');},3000); return; } clearTimeout(t); const i=+b.dataset.cx; S.config={...S.config, custos:S.config.custos.filter((x,k)=>k!==i)}; save(); render(); toast('Custo excluído'); }); });
+  app.querySelectorAll('[data-cadd]').forEach(b=>b.addEventListener('click',()=>{ const tipo=b.dataset.cadd; S.config={...S.config, custos:[...S.config.custos,{id:'c-'+Date.now().toString(36), nome:'Novo custo', valor:0, base:'lote', tipo}]}; save(); render(); const i=S.config.custos.length-1; const n=app.querySelector(`[data-cn="${i}"]`); n?.focus(); n?.select(); }));
 }
 
 // formata números ao sair do campo
@@ -452,7 +542,7 @@ const h=(location.hash||'').slice(1); if(['painel','fichas','insumos','custos'].
 // ---------- dados ----------
 const DEFAULT = {"config": {"embalagem": 120, "transporte": 12, "armazenamento": 2.5, "perda": 12, "imposto": 117.6, "comissaoKg": 1.5, "funcionarios": 150, "energia": 12, "adm": 20, "peso": 0.4, "meta": 0.35, "fixosMes": 15000}, "insumos": {}, "produtos": []};
 function loadState(d){
-  S.config={...d.config};
+  S.config=migrateConfig(d.config);
   S.insumos=JSON.parse(JSON.stringify(d.insumos));
   S.produtos=(d.produtos||[]).map(p=>({...p, receita:{...(p.receita||{})}})).sort((a,b)=>(+a.ordem||0)-(+b.ordem||0));
 }
