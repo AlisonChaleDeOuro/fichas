@@ -308,7 +308,7 @@ tr.drow td{background:var(--sunken);padding:8px 18px 14px!important}
 .itr>b,.itr>span:nth-child(n+3),.itr>em{text-align:right}.itr>em{font-style:normal;font-weight:800}.itr>em.up{color:var(--ok)}.itr>em.down{color:var(--bad)}.itr small{display:block;font-size:11.5px}.itr small.neg{color:var(--bad);display:inline}.itr small.pos{color:var(--ok);display:inline}
 .itn{display:flex;align-items:center;gap:8px;font-weight:600;min-width:0}.itn em{font-style:normal;color:var(--faint);width:20px;font-size:12px}.itn i{width:9px;height:9px;border-radius:50%;flex:none}
 .ith2{padding:16px 10px 20px;border-bottom:1px solid var(--line);background:var(--surface)}.ith2-t{font-weight:700;margin-bottom:12px}
-.hbars{display:flex;gap:14px;align-items:flex-end;overflow-x:auto}.hb{display:flex;flex-direction:column;align-items:center;gap:4px;min-width:84px;font-size:12px}.hb>div{height:140px;width:42px;background:var(--sunken);border-radius:8px;display:flex;align-items:flex-end;overflow:hidden}.hb i{display:block;width:100%;border-radius:8px 8px 0 0}.hb span{font-weight:700}.hb small{color:var(--muted)}.hb.cur span{color:var(--accent)}.hb.cur>div{outline:2px solid var(--gold);outline-offset:2px}
+.mbars{display:flex;gap:14px;align-items:flex-end;overflow-x:auto}.mb{display:flex;flex-direction:column;align-items:center;gap:4px;min-width:84px;font-size:12px}.mb>div{height:140px;width:42px;background:var(--sunken);border-radius:8px;display:flex;align-items:flex-end;overflow:hidden}.mb i{display:block;width:100%;border-radius:8px 8px 0 0}.mb span{font-weight:700}.mb small{color:var(--muted)}.mb.cur span{color:var(--accent)}.mb.cur>div{outline:2px solid var(--gold);outline-offset:2px}
 @media (max-width:1100px){.itr{grid-template-columns:minmax(0,1fr) 110px 120px}.itr>div.vpb,.itr>span:nth-child(4),.itr>span:nth-child(6),.itr>span:nth-child(7){display:none}}
 @media (max-width:860px){.ittot{grid-template-columns:1fr}}
 .alerts{display:grid}
@@ -1153,7 +1153,7 @@ function dreCC(m,ate){
     else { C[c].cmv+=v; add(C[c].cmvDet,cat,v); dd(C[c],'cmv',pk,v,l.qtd); } }
   const trPorco=kgGranja*precoPorco; C.suin.recInt+=trPorco; if(trPorco){ dd(C.suin,'recInt',`Suíno da granja entregue a R$ 0 (${N2.format(kgGranja)} kg × ${money(precoPorco)})`,trPorco); } 
   // a pagar
-  for(const a of bLinhas('apagar',m)){ if(!ok_(a)) continue; const t=tipoDesp(a), pre=preOp(a.op), v=+a.valor||0, cat=subOp(a.op)||a.op;
+  for(const a of bLinhas('apagar',m)){ const t=tipoDesp(a); if(!ok_(a)&&t!=='fixo') continue; const pre=preOp(a.op), v=+a.valor||0, cat=subOp(a.op)||a.op;
     if(t==='cmc'||t==='comissao') continue;
     const dest=pre==='agro'?[['fab',pctFab(cat)],['aco',1-pctFab(cat)]]:pre?[[pre,1]]:[['aco',0.5],['fab',0.5]];
     for(const [c,p] of dest){ if(!p) continue; const x=C[c];
@@ -1370,7 +1370,7 @@ function htmlItens(m,mp,lim,per){
     <em class="${x.d>0.005?'down':x.d<-0.005?'up':''}">${x.d>0.005?'▲':x.d<-0.005?'▼':'='} ${money(Math.abs(x.d))}</em>
     <span>${qf(x.qa,x.un)}<small class="muted"> era ${qf(x.qb,x.un)}</small></span>
     <span>${isFinite(x.pa)?money(x.pa):'–'}${isFinite(x.pa)&&isFinite(x.pb)?` <small class="${x.pa>x.pb?'neg':'pos'}">${x.pa>x.pb?'▲':'▼'}${pct(Math.abs(x.pa/x.pb-1))}</small>`:''}</span></div>
-    ${sel===x?`<div class="ith2"><div class="ith2-t">${esc(tt(x.n))} · mês a mês desde ${mesLbl(INICIO())} (mês inteiro)</div><div class="hbars">${hist.map(h=>`<div class="hb ${h.mm===m?'cur':''}" data-tip="<b>${mesLbl(h.mm)}</b><br>${money(h.t)}<br>${qf(h.qq,x.un)}${h.qq?'<br>'+money(h.t/h.qq)+' por '+esc(String(x.un).toLowerCase()):''}"><b>${h.t?'R$ '+Math.round(h.t).toLocaleString('pt-BR'):'–'}</b><div><i style="height:${h.t/hmx*100}%;background:${cl(x)}"></i></div><span>${mesCurto(h.mm)}</span><small>${h.qq?money(h.t/h.qq)+'/'+esc(String(x.un).toLowerCase()):''}</small></div>`).join('')}</div></div>`:''}`).join('')}</div>
+    ${sel===x?`<div class="ith2"><div class="ith2-t">${esc(tt(x.n))} · mês a mês desde ${mesLbl(INICIO())} (mês inteiro)</div><div class="mbars">${hist.map(h=>`<div class="mb ${h.mm===m?'cur':''}" data-tip="<b>${mesLbl(h.mm)}</b><br>${money(h.t)}<br>${qf(h.qq,x.un)}${h.qq?'<br>'+money(h.t/h.qq)+' por '+esc(String(x.un).toLowerCase()):''}"><b>${h.t?'R$ '+Math.round(h.t).toLocaleString('pt-BR'):'–'}</b><div><i style="height:${h.t/hmx*100}%;background:${cl(x)}"></i></div><span>${mesCurto(h.mm)}</span><small>${h.qq?money(h.t/h.qq)+'/'+esc(String(x.un).toLowerCase()):''}</small></div>`).join('')}</div></div>`:''}`).join('')}</div>
   ${L.length>15&&!S.cmpItTodos&&!q?`<button class="btn" id="itAll" style="margin-top:12px">Ver todos os ${L.length} itens</button>`:''}
   <div class="muted sm" style="margin-top:10px">barra cheia = ${mesCurto(m)} · barra clara = ${mesCurto(mp)} · ▲ vermelho = gastou mais · clique num item para ver o gráfico mês a mês</div>`
   :`<p class="muted">${q?'Nenhum item com “'+esc(S.cmpBusca)+'”.':'Cole o BASE COMPRAS dos dois meses.'}</p>`}`;
@@ -1409,7 +1409,7 @@ function vComparar(){
   const faltaP=!Dp.tem.vendas;
   view.innerHTML=`<div class="phead"><div><span class="area prod">Centros de custo</span><br><h1>${mesLbl(m)} × ${mesLbl(mp)}</h1></div><div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">${mesNav()}</div></div>
   <div class="cmpbar"><div class="seg"><button data-md="dia" class="${modo==='dia'?'on':''}">Até o dia</button><button data-md="mes" class="${modo==='mes'?'on':''}">Mês inteiro</button></div>
-    ${modo==='dia'?`<label class="cdia">dia <input class="in num" id="cmpDia" type="number" min="1" max="31" value="${dia}"></label><span class="muted">compara 1 a ${dia} de ${mesCurto(m)} com 1 a ${dia} de ${mesCurto(mp)}</span>`:`<span class="muted">compara o mês inteiro</span>`}</div>
+    ${modo==='dia'?`<label class="cdia">dia <input class="in num" id="cmpDia" type="number" min="1" max="31" value="${dia}"></label><span class="muted">compara 1 a ${dia} de ${mesCurto(m)} com 1 a ${dia} de ${mesCurto(mp)} · despesas fixas (folha, aluguel, energia…) contam o mês inteiro</span>`:`<span class="muted">compara o mês inteiro</span>`}</div>
   ${faltaP?`<div class="aviso warn" style="margin-bottom:16px">⚠ ${mesLbl(mp)} não tem vendas no site. Cole os relatórios desde 01/07 para comparar.</div>`:''}
   <div class="cbigs">${big('Entrou',J.rec,Jp.rec,false,'var(--gold)')}${big('Saiu',J.rec-J.res,Jp.rec-Jp.res,true,'var(--s-fix)')}${big('Resultado',J.res,Jp.res,false,'var(--ok)')}</div>
   <section class="card cmps"><div class="card-h"><h2>Centros de custo</h2><span class="sub">resultado · ${per}</span></div><div class="card-b cgrid4">
