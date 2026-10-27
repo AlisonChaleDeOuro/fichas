@@ -302,6 +302,15 @@ tr.drow td{background:var(--sunken);padding:8px 18px 14px!important}
 .vpl{display:grid;gap:8px}.vpr{display:grid;grid-template-columns:260px 1fr 120px 115px;gap:12px;align-items:center;font-size:13.5px}.vpn{display:flex;align-items:center;gap:8px;font-weight:600}.vpn i{width:9px;height:9px;border-radius:50%;flex:none}.vpb{position:relative;height:16px}.vpb i{position:absolute;left:0;height:8px;border-radius:5px}.vpb i:first-child{top:0}.vpb i.ant{top:9px;background:var(--line2)}.vpr b{text-align:right}
 @media (max-width:1100px){.cgrid4{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media (max-width:860px){.cbigs,.cgrid4{grid-template-columns:1fr}.vpr{grid-template-columns:1fr 100px}.vpb{grid-column:1/3}.vpr .cz{grid-column:2}.chr{grid-template-columns:1fr 110px}.chr em{grid-column:1/3;text-align:left}}
+.itbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:14px}.itbar .in{flex:1 1 280px;font-size:15px;padding:11px 14px}.itbar .seg button{padding:7px 12px;font-size:13px}
+.ittot{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-bottom:14px}.ittot>div{background:var(--sunken);border-radius:12px;padding:12px 16px}.ittot span{display:block;font-size:12px;color:var(--muted);margin-bottom:4px}.ittot b{font:600 22px var(--display)}.ittot b.neg{color:var(--bad)}.ittot b.pos{color:var(--ok)}
+.itl{display:grid}.itr{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr) 110px 100px 120px 150px 130px;gap:10px;align-items:center;padding:9px 8px;border-bottom:1px solid var(--line);font-size:13.5px;cursor:pointer;border-radius:8px}.itr:hover,.itr.on{background:var(--accent-soft)}.itr.ith{cursor:default;font-size:11.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}.itr.ith:hover{background:none}
+.itr>b,.itr>span:nth-child(n+3),.itr>em{text-align:right}.itr>em{font-style:normal;font-weight:800}.itr>em.up{color:var(--ok)}.itr>em.down{color:var(--bad)}.itr small{display:block;font-size:11.5px}.itr small.neg{color:var(--bad);display:inline}.itr small.pos{color:var(--ok);display:inline}
+.itn{display:flex;align-items:center;gap:8px;font-weight:600;min-width:0}.itn em{font-style:normal;color:var(--faint);width:20px;font-size:12px}.itn i{width:9px;height:9px;border-radius:50%;flex:none}
+.ith2{padding:16px 10px 20px;border-bottom:1px solid var(--line);background:var(--surface)}.ith2-t{font-weight:700;margin-bottom:12px}
+.hbars{display:flex;gap:14px;align-items:flex-end;overflow-x:auto}.hb{display:flex;flex-direction:column;align-items:center;gap:4px;min-width:84px;font-size:12px}.hb>div{height:140px;width:42px;background:var(--sunken);border-radius:8px;display:flex;align-items:flex-end;overflow:hidden}.hb i{display:block;width:100%;border-radius:8px 8px 0 0}.hb span{font-weight:700}.hb small{color:var(--muted)}.hb.cur span{color:var(--accent)}.hb.cur>div{outline:2px solid var(--gold);outline-offset:2px}
+@media (max-width:1100px){.itr{grid-template-columns:minmax(0,1fr) 110px 120px}.itr>div.vpb,.itr>span:nth-child(4),.itr>span:nth-child(6),.itr>span:nth-child(7){display:none}}
+@media (max-width:860px){.ittot{grid-template-columns:1fr}}
 .alerts{display:grid}
 .al{display:flex;gap:12px;padding:12px 18px;border-bottom:1px solid var(--line);align-items:flex-start}
 .al:last-child{border-bottom:0}
@@ -1329,6 +1338,51 @@ function vAjustes(){
 }
 
 // ================= COMPARAÇÃO COM O MÊS PASSADO =================
+// ---------- compras por item: quanto gastamos com cada produto ----------
+function itensCompra(m,mp,lim){
+  const it={};
+  for(const [mm,k] of [[m,'a'],[mp,'b']]) for(const l of bLinhas('compras',mm)){ if(lim(mm)&&l.d>lim(mm)) continue; if(!(l.total>0)) continue;
+    const key=semAc(l.prod); const o=it[key]||(it[key]={n:l.prod,un:l.un,c:centroCompra(l),a:0,b:0,qa:0,qb:0,na:0,nb:0}); o[k]+=l.total; o['q'+k]+=+l.qtd||0; o['n'+k]++; }
+  return Object.values(it).map(o=>({...o,d:o.a-o.b,pa:o.qa?o.a/o.qa:NaN,pb:o.qb?o.b/o.qb:NaN}));
+}
+function htmlItens(m,mp,lim,per){
+  const tt=s=>String(s||'').split(/\s+/).map(w=>w.charAt(0)+w.slice(1).toLowerCase()).join(' ');
+  const q=semAc(S.cmpBusca||''), ord=S.cmpOrd||'gasto', cf=S.cmpCC||'';
+  let L=itensCompra(m,mp,lim);
+  const totA=sum(L,x=>x.a), totB=sum(L,x=>x.b);
+  if(q) L=L.filter(x=>semAc(x.n).includes(q)); if(cf) L=L.filter(x=>x.c===cf||(x.c==='agro'&&(cf==='fab'||cf==='aco')));
+  L.sort(ord==='subiu'?(x,y)=>y.d-x.d:ord==='caiu'?(x,y)=>x.d-y.d:(x,y)=>y.a-x.a);
+  const mx=Math.max(1,...L.map(x=>Math.max(x.a,x.b)));
+  const qf=(v,un)=>v?N2.format(v)+' '+String(un||'').toLowerCase():'–';
+  const sel=S.cmpItem&&L.find(x=>semAc(x.n)===S.cmpItem);
+  const hist=sel?mesesCC().map(mm=>{ let t=0,qq=0; for(const l of bLinhas('compras',mm)) if(semAc(l.prod)===S.cmpItem&&l.total>0){ t+=l.total; qq+=+l.qtd||0; } return {mm,t,qq}; }):[];
+  const hmx=Math.max(1,...hist.map(h=>h.t));
+  const cl=x=>x.c==='agro'?'#8C7A5B':cCor(x.c);
+  return `<div class="itbar"><input class="in" id="itBusca" placeholder="Buscar item: pele, tripa, alho, carcaça…" value="${esc(S.cmpBusca||'')}">
+    <div class="seg">${[['gasto','Mais gasto'],['subiu','Mais subiu'],['caiu','Mais caiu']].map(([k,n])=>`<button data-ord="${k}" class="${ord===k?'on':''}">${n}</button>`).join('')}</div>
+    <div class="seg">${[['','Todos'],...CENTROS.map(c=>[c[0],c[1].replace(' de Linguiças','')])].map(([k,n])=>`<button data-icc="${k}" class="${cf===k?'on':''}">${n}</button>`).join('')}</div></div>
+  <div class="ittot"><div><span>Total comprado · ${per}</span><b>${money(totA)}</b></div><div><span>Mesmo período ${mesCurto(mp)}</span><b class="muted">${money(totB)}</b></div><div><span>Diferença</span><b class="${totA>totB?'neg':'pos'}">${totA>totB?'▲':'▼'} ${money(Math.abs(totA-totB))}</b></div></div>
+  ${L.length?`<div class="itl"><div class="itr ith"><span>Item</span><span></span><span>Gasto ${mesCurto(m)}</span><span>${mesCurto(mp)}</span><span>Diferença</span><span>Quantidade</span><span>Preço médio</span></div>
+  ${L.slice(0,S.cmpItTodos||q?999:15).map((x,i)=>`<div class="itr ${sel&&sel===x?'on':''}" data-it="${esc(semAc(x.n))}" data-tip="<b>${esc(tt(x.n))}</b><br>${mesCurto(m)}: ${money(x.a)} · ${qf(x.qa,x.un)} · ${x.na} compra(s)<br>${mesCurto(mp)}: ${money(x.b)} · ${qf(x.qb,x.un)} · ${x.nb} compra(s)<br>clique para ver mês a mês">
+    <span class="itn"><em>${i+1}</em><i style="background:${cl(x)}"></i>${esc(tt(x.n))}</span>
+    <div class="vpb"><i style="width:${x.a/mx*100}%;background:${cl(x)}"></i><i class="ant" style="width:${x.b/mx*100}%"></i></div>
+    <b>${money(x.a)}</b><span class="muted">${money(x.b)}</span>
+    <em class="${x.d>0.005?'down':x.d<-0.005?'up':''}">${x.d>0.005?'▲':x.d<-0.005?'▼':'='} ${money(Math.abs(x.d))}</em>
+    <span>${qf(x.qa,x.un)}<small class="muted"> era ${qf(x.qb,x.un)}</small></span>
+    <span>${isFinite(x.pa)?money(x.pa):'–'}${isFinite(x.pa)&&isFinite(x.pb)?` <small class="${x.pa>x.pb?'neg':'pos'}">${x.pa>x.pb?'▲':'▼'}${pct(Math.abs(x.pa/x.pb-1))}</small>`:''}</span></div>
+    ${sel===x?`<div class="ith2"><div class="ith2-t">${esc(tt(x.n))} · mês a mês desde ${mesLbl(INICIO())} (mês inteiro)</div><div class="hbars">${hist.map(h=>`<div class="hb ${h.mm===m?'cur':''}" data-tip="<b>${mesLbl(h.mm)}</b><br>${money(h.t)}<br>${qf(h.qq,x.un)}${h.qq?'<br>'+money(h.t/h.qq)+' por '+esc(String(x.un).toLowerCase()):''}"><b>${h.t?'R$ '+Math.round(h.t).toLocaleString('pt-BR'):'–'}</b><div><i style="height:${h.t/hmx*100}%;background:${cl(x)}"></i></div><span>${mesCurto(h.mm)}</span><small>${h.qq?money(h.t/h.qq)+'/'+esc(String(x.un).toLowerCase()):''}</small></div>`).join('')}</div></div>`:''}`).join('')}</div>
+  ${L.length>15&&!S.cmpItTodos&&!q?`<button class="btn" id="itAll" style="margin-top:12px">Ver todos os ${L.length} itens</button>`:''}
+  <div class="muted sm" style="margin-top:10px">barra cheia = ${mesCurto(m)} · barra clara = ${mesCurto(mp)} · ▲ vermelho = gastou mais · clique num item para ver o gráfico mês a mês</div>`
+  :`<p class="muted">${q?'Nenhum item com “'+esc(S.cmpBusca)+'”.':'Cole o BASE COMPRAS dos dois meses.'}</p>`}`;
+}
+function bindItens(m,mp,lim,per){
+  const box=$('#cmpItens'); const re=()=>{ box.innerHTML=htmlItens(m,mp,lim,per); bindItens(m,mp,lim,per); };
+  const inp=$('#itBusca'); inp.addEventListener('input',()=>{ S.cmpBusca=inp.value; const pos=inp.selectionStart; re(); const n=$('#itBusca'); n.focus(); n.setSelectionRange(pos,pos); });
+  $$('#cmpItens [data-ord]').forEach(b=>b.addEventListener('click',()=>{ S.cmpOrd=b.dataset.ord; re(); }));
+  $$('#cmpItens [data-icc]').forEach(b=>b.addEventListener('click',()=>{ S.cmpCC=b.dataset.icc; re(); }));
+  $$('#cmpItens .itr[data-it]').forEach(r=>r.addEventListener('click',()=>{ S.cmpItem=S.cmpItem===r.dataset.it?null:r.dataset.it; re(); }));
+  $('#itAll')?.addEventListener('click',()=>{ S.cmpItTodos=true; re(); });
+}
 function vComparar(){
   const m=S.mes, mp=addMes(m,-1), t=hoje();
   const diasM=+new Date(+m.slice(0,4),+m.slice(5,7),0).getDate();
@@ -1361,6 +1415,7 @@ function vComparar(){
   <section class="card cmps"><div class="card-h"><h2>Centros de custo</h2><span class="sub">resultado · ${per}</span></div><div class="card-b cgrid4">
     ${CENTROS.map(([k,n,c])=>{ const x=D.C[k], p=Dp.C[k]; return `<div class="cc4" style="--c:${c}"><div class="cc4-t">${n}</div><div class="cc4-v ${x.res<0?'neg':''}">${money(x.res)}</div><div>${seta(x.res,p.res)} <span class="muted sm">vs ${money(p.res)}</span></div>${par(x.res,p.res,c)}<div class="cc4-l"><span>Entrou</span><b>${money(x.rec)}</b>${seta(x.rec,p.rec)}</div><div class="cc4-l"><span>Saiu</span><b>${money(x.rec-x.res)}</b>${seta(x.rec-x.res,p.rec-p.res,true)}</div></div>`; }).join('')}
   </div></section>
+  <section class="card" style="margin-bottom:16px"><div class="card-h"><h2>Compras por item: onde estamos gastando mais</h2><span class="sub">${per}</span></div><div class="card-b" id="cmpItens">${htmlItens(m,mp,lim,per)}</div></section>
   <div class="grid g2" style="margin-bottom:16px">
     <section class="card"><div class="card-h"><h2>Despesas que mais mudaram</h2><span class="sub">${per}</span></div><div class="card-b">
       ${dcs.length?`<div class="chg">${dcs.slice(0,10).map(o=>`<div class="chr"><span>${esc(capT(o.n))}</span><b>${money(o.a)}</b><em class="${o.d>0?'down':o.d<0?'up':''}">${o.d>0?'▲':o.d<0?'▼':'='} ${money(Math.abs(o.d))}</em></div>`).join('')}</div>`:'<p class="muted">Cole o BASE A PAGAR.</p>'}</div></section>
@@ -1370,8 +1425,8 @@ function vComparar(){
     ${vps.length?`<div class="vpl">${vps.slice(0,S.cmpTodos?999:12).map(o=>{ const mx=Math.max(o.a,o.b,1); return `<div class="vpr"><span class="vpn"><i style="background:${cCor(o.c)}"></i>${esc(tt(o.n))}</span><div class="vpb"><i style="width:${o.a/mx*100}%;background:${cCor(o.c)}"></i><i class="ant" style="width:${o.b/mx*100}%"></i></div><b>${money(o.a)}</b>${seta(o.a,o.b)}</div>`; }).join('')}</div>
     ${vps.length>12&&!S.cmpTodos?`<button class="btn" id="cmpAll" style="margin-top:12px">Ver todos os ${vps.length} produtos</button>`:''}
     <div class="muted sm" style="margin-top:10px">barra cheia = ${mesCurto(m)} · barra clara = ${mesCurto(mp)}</div>`:'<p class="muted">Cole o BASE VENDAS.</p>'}</div></section>`;
-  bindMesNav(vComparar);
-  $$('.seg button').forEach(b=>b.addEventListener('click',()=>{ S.cmpModo=b.dataset.md; vComparar(); }));
+  bindMesNav(vComparar); bindItens(m,mp,lim,per);
+  $$('.cmpbar .seg button').forEach(b=>b.addEventListener('click',()=>{ S.cmpModo=b.dataset.md; vComparar(); }));
   $('#cmpDia')?.addEventListener('change',e=>{ const v=Math.max(1,Math.min(31,parseInt(e.target.value)||1)); S.cmpDia=v; vComparar(); });
   $('#cmpAll')?.addEventListener('click',()=>{ S.cmpTodos=true; vComparar(); });
 }
