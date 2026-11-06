@@ -1115,6 +1115,21 @@ tr.lj-ruim td{background:rgba(178,58,43,.05)}
 @media print{body.pr-lj *{visibility:hidden}body.pr-lj .ljpr,body.pr-lj .ljpr *{visibility:visible}body.pr-lj .ljpr{position:absolute;left:0;top:0;width:100%;max-width:none;border:0;padding:0}body.pr-lj .ljpr-k{grid-template-columns:repeat(3,1fr)}}
 @media (max-width:900px){.ljpr{overflow-x:auto}.ljpr-t{font-size:11.5px}.ljpr-t td,.ljpr-t th{padding:5px 4px}.ljpr-hero b{font-size:28px}#pdfLoja{max-width:100%}}
 .lj-dg summary{cursor:pointer;padding:10px 0;font-size:13.5px;color:var(--gold,#B8862F);font-weight:600}
+.fls-k{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}.fls-k div{border:1px solid var(--line);border-radius:12px;padding:10px 12px;background:var(--surface)}.fls-k small{display:block;font-size:11.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}.fls-k b{display:block;font-family:var(--display);font-size:22px;margin:3px 0}.fls-k span{font-size:12px;color:var(--muted)}
+.fls td small{display:block;font-size:11px;color:var(--muted)}
+@media (max-width:900px){.fls-k{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.tp-tabs{display:flex;gap:8px;flex-wrap:wrap;align-items:center}.tp-tab{border:1px solid var(--line2);background:var(--surface);border-radius:12px;padding:8px 14px;font:inherit;cursor:pointer;color:var(--ink);display:flex;flex-direction:column;align-items:flex-start;line-height:1.2}.tp-tab small{font-size:11.5px;color:var(--muted)}.tp-tab.on{border-color:var(--gold,#B8862F);box-shadow:0 0 0 2px rgba(184,134,47,.15)}.tp-nova{width:auto}
+.tp-cfg{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,.7fr) minmax(0,.8fr) minmax(0,.6fr);gap:12px;margin-top:14px}.tp-obs{grid-column:1/-1}.tp-pc{display:flex;align-items:center;gap:6px}.tp-pc em{font-style:normal;color:var(--muted)}
+.tp-t td small{display:block;font-size:11px;color:var(--muted)}.tp-t tr.off td{opacity:.45}.tp-man{width:96px;text-align:right}
+.tp-acts{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
+.tp-prev{margin-top:16px;display:flex;flex-direction:column;gap:6px}
+.tpdoc{max-width:520px;background:#FFFDF8;border:1px solid #E8DFCC;border-top:6px solid #B8862F;border-radius:12px;padding:20px 22px;color:#2B2118}
+.tpdoc-h b{display:block;font-family:Georgia,serif;font-size:22px}.tpdoc-h span{display:block;color:#6B5A36;font-size:15px;margin-top:2px}
+.tpdoc table{width:100%;border-collapse:collapse;margin-top:14px;font-size:16px}.tpdoc th{background:#F3EBDB;color:#6B5A36;font-size:12px;text-transform:uppercase;letter-spacing:.05em;padding:8px 10px;text-align:left}.tpdoc th:last-child,.tpdoc td:last-child{text-align:right}.tpdoc td{padding:10px;border-bottom:1px solid #EFE7D6}.tpdoc td:last-child{font-weight:700}
+.tpdoc-f{margin-top:12px;font-size:13px;color:#6B5A36}
+#tpPrint{display:none}
+@media print{body.pr-tp *{visibility:hidden}body.pr-tp #tpPrint{display:block}body.pr-tp #tpPrint,body.pr-tp #tpPrint *{visibility:visible}body.pr-tp #tpPrint{position:absolute;left:0;top:0;width:100%}body.pr-tp #tpPrint .tpdoc{max-width:none;border:0;border-top:6px solid #B8862F}}
+@media (max-width:900px){.tp-cfg{grid-template-columns:1fr 1fr}}
 </style>
 </head>
 <body>
@@ -1328,8 +1343,8 @@ function render(){
 function vPainel(){
   view.innerHTML=`<div class="phead"><div><span class="area prod">Produção</span><br><h1>Margens por sabor</h1><p>Margem de cada sabor no pacote de ${porcao()} e no kg. Os números do mês (vendas, lucro e ponto de equilíbrio) ficam no Painel gerencial.</p></div>
     <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center"><label class="metabox"><span class="lbl">Meta de margem</span>${numIn('meta',(+S.config.meta||0)*100)}<span class="muted">%</span></label></div></div>
-    <div id="pBody"></div>`;
-  pBody();
+    <div id="pBody"></div><div id="tpBody"></div>`;
+  pBody(); if(S.neg==='embutidos') tpRender();
   $('#meta')?.addEventListener('input',e=>{ S.config={...S.config,meta:parseNum(e.target.value)/100}; pBody(); save(); });
 }
 function pBody(){
@@ -1451,10 +1466,10 @@ function setCfg(k,v){ S.config={...S.config,[k]:v}; save(); }
 function carregarXLSX(){ return new Promise((ok,err)=>{ if(window.XLSX) return ok(window.XLSX); const s=document.createElement('script'); s.src='https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js'; s.onload=()=>ok(window.XLSX); s.onerror=()=>err(new Error('Não foi possível carregar o leitor de planilhas. Verifique a internet.')); document.head.appendChild(s); }); }
 const numBR=v=>{ if(typeof v==='number') return v; const s=String(v??'').trim(); if(!s) return 0; const t=s.includes(',')?s.replace(/\./g,'').replace(',','.'):s; const n=parseFloat(t); return isFinite(n)?n:0; };
 function dataBRtoIso(v){ if(v instanceof Date) return dIso(v); if(typeof v==='number'){ const d=new Date(Math.round((v-25569)*864e5)); return dIso(new Date(d.getTime()+d.getTimezoneOffset()*6e4)); } const m=String(v||'').match(/(\d{2})\/(\d{2})\/(\d{4})/); return m?`${m[3]}-${m[2]}-${m[1]}`:null; }
-async function importarSischef(file){
+async function importarSischef(file,rows0){
   try{
-    const X=await carregarXLSX(); const buf=await file.arrayBuffer(); const wb=X.read(buf,{type:'array'}); const ws=wb.Sheets[wb.SheetNames[0]];
-    const rows=X.utils.sheet_to_json(ws,{defval:'',raw:true});
+    let rows=rows0; if(!rows){ const X=await carregarXLSX(); const buf=await file.arrayBuffer(); const wb=X.read(buf,{type:'array'}); const ws=wb.Sheets[wb.SheetNames[0]]; rows=X.utils.sheet_to_json(ws,{defval:'',raw:true}); }
+    { const lj=lojaDoRelatorio(rows); if(lj) throw new Error(`${file.name} é um relatório da ${empNome(lj)}, não da Fazenda. Nada foi importado.`); }
     if(!rows.length||!('Produto' in rows[0])||!('Qtde' in rows[0])||!('Total' in rows[0])) throw new Error('Este arquivo não parece o relatório de Pedidos de Venda do Sischef.');
     const porMes={}; let n=0, novosV=new Set();
     for(const r of rows){
@@ -1467,14 +1482,15 @@ async function importarSischef(file){
       if(v&&!vendedorDe(v)) novosV.add(v);
     }
     if(!n) throw new Error('Nenhuma venda encontrada no arquivo.');
-    for(const [m,arr] of Object.entries(porMes)){ S.vend={...S.vend,[m]:[...vLinhas(m).filter(x=>x.o!=='sischef'),...arr]}; saveVend(m); }
+    const ant={}; for(const m of new Set([...Object.keys(S.vend||{}),...Object.keys(porMes)])) ant[m]=vLinhas(m);
+    const R=mesclaPeriodo(ant,Object.values(porMes).flat(),l=>String(l.d||'').slice(0,10),l=>l.o!=='sischef'); // lançamentos feitos à mão no sistema ficam sempre
+    for(const [m,arr] of Object.entries(R.porMes)){ S.vend={...S.vend,[m]:arr}; saveVend(m); }
     if(novosV.size){ setCfg('vendedores',[...vendedores(),...[...novosV].map((nm,i)=>({id:'v'+Date.now()+i,nome:nm,pct:0.02,aliases:[],ativo:true}))]); }
     const ms=Object.keys(porMes).sort(); S.mes=ms[ms.length-1];
-    const ds=Object.values(porMes).flat().map(x=>x.d).sort();
-    setCfg('ultimaImport',{arquivo:file.name,em:new Date().toISOString(),de:ds[0],ate:ds[ds.length-1],linhas:n});
-    toast(`${n} linhas importadas (${ms.map(mesCurto).join(', ')})${novosV.size?` · ${novosV.size} vendedor(es) cadastrado(s)`:''}`);
-    render();
-  }catch(e){ toast(e.message||'Não foi possível ler o arquivo.'); }
+    setCfg('ultimaImport',impUniao(cfgV().ultimaImport,R.lo,R.hi,{arquivo:file.name,linhas:n}));
+    toast(`Vendas: ${n} linhas de ${dataBR(R.lo)}/${R.lo.slice(2,4)} a ${dataBR(R.hi)}/${R.hi.slice(2,4)}, somadas ao que já estava${novosV.size?` · ${novosV.size} vendedor(es) cadastrado(s)`:''}`);
+    render(); return true;
+  }catch(e){ toast(e.message||'Não foi possível ler o arquivo.'); return false; }
 }
 
 // ---------- ponto de equilíbrio: previsão ----------
@@ -1821,6 +1837,19 @@ function tipoPago(l){ const o=semAc(l.op), d=semAc(l.desc);
   if(o.includes('LOGISTICA')) return /TRATOR/.test(d)?'fixo':'var';
   return 'fixo'; }
 const entradaPago=op=>{ const o=semAc(op); return o.startsWith('VENDA')||o.includes('RECEBIMENTO')||o.includes('SOBRA DE CAIXA')||o.includes('APORTE'); };
+// v102: cada relatório colado SOMA ao que já está. Só o período do arquivo (da 1ª à última data dele) é trocado; o resto fica.
+function mesclaPeriodo(antigo,novos,kd,manter){ const ks=novos.map(kd).filter(Boolean).sort(), lo=ks[0], hi=ks[ks.length-1], out={}, mexe=new Set();
+  for(const [m,arr] of Object.entries(antigo||{})) for(const l of (arr||[])){ const k=kd(l); if((manter&&manter(l))||!k||k<lo||k>hi) (out[m]||(out[m]=[])).push(l); else mexe.add(m); }
+  for(const l of novos){ const m=String(l.d).slice(0,7); (out[m]||(out[m]=[])).push(l); mexe.add(m); }
+  const r={}; for(const m of mexe) r[m]=out[m]||[]; return {porMes:r,lo,hi}; }
+const impUniao=(ant,lo,hi,extra)=>({...extra,de:[ant&&ant.de,lo].filter(Boolean).sort()[0],ate:[ant&&ant.ate,hi].filter(Boolean).sort().pop(),ultDe:lo,ultAte:hi,em:new Date().toISOString()});
+function lojaDoRelatorio(rows){ const kId=('ID Pessoa' in (rows[0]||{}))?'ID Pessoa':('ID PESSOA' in (rows[0]||{}))?'ID PESSOA':null, kN=kId==='ID Pessoa'?'Pessoa':'PESSOA'; if(!kId) return null;
+  for(const r of rows){ if(semAc(r[kN]).trim()==='CLIENTE FINAL'&&r[kId]!==''){ const id=String(r[kId]).replace(/\.0+$/,'').trim(); return Object.keys(LJ_CLI).find(k=>LJ_CLI[k]===id)||null; } } return null; }
+// período que de fato está no sistema (pela data das linhas guardadas)
+function cobRel(tipo){ let lo=null,hi=null; const ver=d=>{ d=String(d||'').slice(0,10); if(d.length!==10||d[4]!=='-') return; if(!lo||d<lo) lo=d; if(!hi||d>hi) hi=d; };
+  if(tipo==='vendas'){ for(const m of Object.keys(S.vend||{})) for(const l of vLinhas(m)) if(l.o==='sischef') ver(l.d); } else for(const arr of Object.values((S.bases||{})[tipo]||{})) for(const l of (arr||[])) ver(l.d);
+  return lo?[lo,hi]:null; }
+async function importarVarios(files){ if(!podeSalvar()) return; const L=[...files]; let ok=0; for(let i=0;i<L.length;i++){ toast(`Lendo ${i+1} de ${L.length}: ${L[i].name}…`); if(await importarBase(L[i],null)) ok++; } if(L.length>1) toast(`${ok} de ${L.length} relatórios importados e somados ao que já estava.`); }
 async function importarBase(file,esperado){
   if(!podeSalvar()) return;
   try{
@@ -1830,7 +1859,8 @@ async function importarBase(file,esperado){
     if(!tipo) throw new Error(esperado?`Relatório errado. Aqui vai o ${nomeBase(esperado)}: “${(BASES.find(b=>b.id===esperado)||{}).rel}” do Sischef. Este arquivo não é nenhum dos 4 relatórios.`:'Não reconheci este relatório. Use um dos 4 relatórios do Sischef.');
     if(esperado&&esperado!==tipo) throw new Error(`Relatório errado. Este arquivo é o ${nomeBase(tipo)} (${(BASES.find(b=>b.id===tipo)||{}).rel}). Aqui vai o ${nomeBase(esperado)}: “${(BASES.find(b=>b.id===esperado)||{}).rel}”. Nada foi importado.`);
     { const ev=validaRelatorio(tipo,rows); if(ev) throw new Error(ev); }
-    if(tipo==='vendas'){ S.relErr={}; return importarSischef(file); }
+    { const lj=lojaDoRelatorio(rows); if(lj) throw new Error(`${file.name} é um relatório da ${empNome(lj)}, não da Fazenda. Nada foi importado.`); }
+    if(tipo==='vendas'){ S.relErr={}; return await importarSischef(file,rows); }
     const porMes={}; let n=0;
     if(tipo==='compras'){
       for(const r of rows){ const d=dataBRtoIso(r['Data']); if(!d) continue;
@@ -1843,18 +1873,18 @@ async function importarBase(file,esperado){
     } else {
       const porMesR={}; for(const r of rows){ if(!semAc(r['tipo']).includes('RECEBER')) continue; const d=dataBRtoIso(r['data ocorrencia'])||dataBRtoIso(r['data vencimento']); if(!d) continue;
         (porMesR[d.slice(0,7)]=porMesR[d.slice(0,7)]||[]).push({d,venc:dataBRtoIso(r['data vencimento']),nome:String(r['nome']||'').trim(),op:String(r['operacao']||'').trim(),desc:String(r['descricao']||'').trim(),valor:Math.abs(numUS(r['valor'])),saldo:Math.abs(numUS(r['saldo'])),sit:String(r['situacao']||'').trim()}); }
-      for(const [m,arr] of Object.entries(porMesR)){ S.bases.receber={...(S.bases.receber||{}),[m]:arr}; saveBase('receber',m); }
+      { const nv=Object.values(porMesR).flat(); if(nv.length){ const R=mesclaPeriodo(S.bases.receber||{},nv,l=>String(l.d||'').slice(0,10)); for(const [m,arr] of Object.entries(R.porMes)){ S.bases.receber={...(S.bases.receber||{}),[m]:arr}; saveBase('receber',m); } } }
       for(const r of rows){ if(!semAc(r['tipo']).includes('PAGAR')) continue; const d=dataBRtoIso(r['data ocorrencia'])||dataBRtoIso(r['data vencimento']); if(!d) continue;
         const l={id:'a'+n,d,venc:dataBRtoIso(r['data vencimento']),nome:String(r['nome']||'').trim(),op:String(r['operacao']||'').trim(),gop:String(r['grupo operacao']||'').trim(),desc:String(r['descricao']||'').trim(),valor:Math.abs(numUS(r['valor'])),saldo:Math.abs(numUS(r['saldo'])),sit:String(r['situacao']||'').trim()};
         (porMes[d.slice(0,7)]=porMes[d.slice(0,7)]||[]).push(l); n++; }
     }
     if(!n) throw new Error('Nenhuma linha válida no arquivo.');
-    for(const [m,arr] of Object.entries(porMes)){ S.bases[tipo]={...S.bases[tipo],[m]:arr}; saveBase(tipo,m); }
-    const ds=Object.values(porMes).flat().map(x=>x.d).sort();
-    setCfg('imp_'+tipo,{arquivo:file.name,em:new Date().toISOString(),de:ds[0],ate:ds[ds.length-1],linhas:n});
-    S.relErr={}; toast(`${nomeBase(tipo)}: ${n} linhas importadas (${Object.keys(porMes).sort().map(mesCurto).join(', ')})`);
-    render();
-  }catch(e){ const msg=e.message||'Não foi possível ler o arquivo.'; toast(msg); if(esperado){ S.relErr={[esperado]:msg}; if(S.view==='relatorios') render(); } }
+    const R=mesclaPeriodo(S.bases[tipo]||{},Object.values(porMes).flat(),l=>String(l.d||'').slice(0,10));
+    for(const [m,arr] of Object.entries(R.porMes)){ S.bases[tipo]={...S.bases[tipo],[m]:arr}; saveBase(tipo,m); }
+    setCfg('imp_'+tipo,impUniao(cfgV()['imp_'+tipo],R.lo,R.hi,{arquivo:file.name,linhas:n}));
+    S.relErr={}; toast(`${nomeBase(tipo)}: ${n} linhas de ${dataBR(R.lo)}/${R.lo.slice(2,4)} a ${dataBR(R.hi)}/${R.hi.slice(2,4)}, somadas ao que já estava`);
+    render(); return true;
+  }catch(e){ const msg=e.message||'Não foi possível ler o arquivo.'; toast(msg); if(esperado){ S.relErr={[esperado]:msg}; if(S.view==='relatorios') render(); } return false; }
 }
 
 // ---------- centros e regras ----------
@@ -2457,23 +2487,25 @@ function bindDRE(root){ const QQ=q=>root?[...root.querySelectorAll(q)]:$$(q); QQ
 function vRelatorios(){
   const imp=id=>id==='vendas'?cfgV().ultimaImport:cfgV()['imp_'+id];
   const fmtEm=iso=>{ try{ const d=new Date(iso); return d.toLocaleDateString('pt-BR')+' às '+d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}); }catch(e){ return ''; } };
-  view.innerHTML=`<div class="phead"><div><span class="area prod">Gerencial</span><br><h1>Relatórios do Sischef</h1><p>Cole aqui os 4 relatórios, sempre de <b>01/07/2026 até hoje</b>. Depois disso, centros de custo, comparação, painel das linguiças, comissões e bônus se calculam sozinhos.</p></div></div>
+  view.innerHTML=`<div class="phead"><div><span class="area prod">Gerencial</span><br><h1>Relatórios do Sischef</h1><p>Cole os 4 relatórios do Sischef da Fazenda. Cada relatório colado <b>soma</b> ao que já está no sistema: só o período que vem no arquivo (da primeira à última data dele) é atualizado; o resto fica como estava. Pode colar o mês inteiro, uma semana ou de 01/07/2026 até hoje.</p></div></div>
+  ${podeSalvar()?`<section class="card lj-todos" style="margin-bottom:14px"><div class="card-b"><div><b>Colar vários relatórios de uma vez</b><p class="muted sm" style="margin:4px 0 0">Selecione os arquivos juntos (os 4 tipos, e as vendas em quantos arquivos vierem). O sistema reconhece cada um e recusa relatório das lojas.</p></div><label class="btn primary">Escolher arquivos<input type="file" accept=".xls,.xlsx" multiple id="rfTodos" hidden></label></div></section>`:''}
   <div class="rgrid">${BASES.map((b,i)=>{ const u=imp(b.id); return `<section class="card rcard ${u?'feito':''}" data-drop="${b.id}">
     <div class="rnum">${i+1}</div><div class="rtit">${b.tit}</div>
     ${(S.relErr||{})[b.id]?`<div class="rerr">⛔ ${esc(S.relErr[b.id])}</div>`:''}
     <div class="rrel"><span class="muted sm">Relatório no Sischef</span><b>${esc(b.rel)}</b></div>
-    <div class="rrel"><span class="muted sm">Período</span><b>01/07/2026 até hoje</b></div>
+    <div class="rrel"><span class="muted sm">No sistema</span><b>${(()=>{ const c=cobRel(b.id); return c?`${dataBR(c[0])}/${c[0].slice(2,4)} a ${dataBR(c[1])}/${c[1].slice(2,4)}`:'nada ainda'; })()}</b></div>
     <div class="rrel"><span class="muted sm">Arquivo</span><code>${esc(b.arq)}</code></div>
     <p class="muted sm" style="margin:8px 0 14px">${esc(b.para)}</p>
-    <label class="btn primary rbtn" for="rf-${b.id}">${u?'⟳ Trocar relatório':'⬆ Colar relatório'}</label><input type="file" id="rf-${b.id}" data-b="${b.id}" accept=".xls,.xlsx" hidden>
-    <div class="rst">${u?`<span class="ok-dot"></span><div><b>${esc(u.arquivo)}</b><br>${dataBR(u.de)}/${(u.de||'').slice(0,4)} a ${dataBR(u.ate)}/${(u.ate||'').slice(0,4)} · ${u.linhas} linhas<br><span class="muted">importado em ${fmtEm(u.em)}</span></div>`:'<span class="muted">Ainda não colado. Pode arrastar o arquivo para este quadro.</span>'}</div>
+    <label class="btn primary rbtn" for="rf-${b.id}">${u?'⬆ Colar mais (soma)':'⬆ Colar relatório'}</label><input type="file" id="rf-${b.id}" data-b="${b.id}" accept=".xls,.xlsx" multiple hidden>
+    <div class="rst">${u?`<span class="ok-dot"></span><div>Último colado: <b>${esc(u.arquivo)}</b><br>${u.ultDe?`${dataBR(u.ultDe)}/${u.ultDe.slice(2,4)} a ${dataBR(u.ultAte)}/${u.ultAte.slice(2,4)}`:`${dataBR(u.de)}/${(u.de||'').slice(0,4)} a ${dataBR(u.ate)}/${(u.ate||'').slice(0,4)}`} · ${u.linhas} linhas<br><span class="muted">importado em ${fmtEm(u.em)}</span></div>`:'<span class="muted">Ainda não colado. Pode arrastar o arquivo para este quadro.</span>'}</div>
   </section>`; }).join('')}</div>
   <section class="card" style="margin-top:16px"><div class="card-h"><h2>Meses carregados</h2><span class="sub">✓ = relatório com dados no mês</span></div>
   <div class="tw"><table><thead><tr><th style="text-align:left">Mês</th><th>Vendas</th><th>Compras</th><th>A pagar</th><th>Pagos</th></tr></thead><tbody>
   ${mesesCC().map(m=>`<tr><td style="text-align:left"><b>${mesLbl(m)}</b></td>${['v','compras','apagar','pagos'].map(b=>{ const n=b==='v'?vLinhas(m).length:bLinhas(b,m).length; return `<td>${n?`<span class="pos">✓ ${n}</span>`:'<span class="neg">falta</span>'}</td>`; }).join('')}</tr>`).join('')}
   </tbody></table></div></section>`;
-  $$('[data-b]').forEach(i=>i.addEventListener('change',e=>{ if(e.target.files[0]) importarBase(e.target.files[0],e.target.dataset.b); e.target.value=''; }));
-  $$('[data-drop]').forEach(dz=>{ ['dragenter','dragover'].forEach(ev=>dz.addEventListener(ev,e=>{ e.preventDefault(); dz.classList.add('drag'); })); ['dragleave','drop'].forEach(ev=>dz.addEventListener(ev,e=>{ e.preventDefault(); dz.classList.remove('drag'); })); dz.addEventListener('drop',e=>{ const f=e.dataTransfer.files[0]; if(f) importarBase(f,dz.dataset.drop); }); });
+  $$('[data-b]').forEach(i=>i.addEventListener('change',async e=>{ const f=[...e.target.files], b=e.target.dataset.b; e.target.value=''; for(const x of f) await importarBase(x,b); }));
+  $('#rfTodos')?.addEventListener('change',e=>{ const f=[...e.target.files]; e.target.value=''; if(f.length) importarVarios(f); });
+  $$('[data-drop]').forEach(dz=>{ ['dragenter','dragover'].forEach(ev=>dz.addEventListener(ev,e=>{ e.preventDefault(); dz.classList.add('drag'); })); ['dragleave','drop'].forEach(ev=>dz.addEventListener(ev,e=>{ e.preventDefault(); dz.classList.remove('drag'); })); dz.addEventListener('drop',async e=>{ for(const f of [...e.dataTransfer.files]) await importarBase(f,dz.dataset.drop); }); });
 }
 
 // ================= ABA CENTROS DE CUSTO =================
@@ -2604,11 +2636,6 @@ function validaRelatorio(tipo,rows){
     if(L.length>10&&(!sit.has('PAGO')||!sit.has('NAO PAGO'))) return `Este A Pagar só tem contas ${sit.has('PAGO')?'pagas':'não pagas'}. No Sischef, tire com as pagas E as não pagas, senão as despesas ficam faltando.`; }
   const ds=L.map(r=>dataBRtoIso(r[REL_DATA[tipo]])).filter(Boolean).sort();
   if(!ds.length) return `${nome}: não encontrei nenhuma data válida no arquivo.`;
-  if(tipo!=='apagar'){
-    const d0=ds[0], d1=ds[ds.length-1], m0=d0.slice(0,7), m1=d1.slice(0,7), cur=hoje().slice(0,7);
-    if(m0>=INICIO()&&+d0.slice(8,10)>10) return `${nome} começa em ${dataBR(d0)}/${d0.slice(0,4)}: o mês de ${mesLbl(m0)} ficaria pela metade. Tire o relatório a partir de 01/${m0.slice(5,7)}/${m0.slice(0,4)} (o certo é sempre de 01/${INICIO().slice(5,7)}/${INICIO().slice(0,4)} até hoje).`;
-    if(m1<cur&&+d1.slice(8,10)<diasMesN(m1)-5) return `${nome} termina em ${dataBR(d1)}/${d1.slice(0,4)}: o mês de ${mesLbl(m1)} ficaria pela metade. Tire o relatório até hoje.`;
-  }
   return null;
 }
 // ================= v43: aba Possíveis erros (Configurar) =================
@@ -2803,6 +2830,7 @@ function fabLingHTML(m){
   <div class="grid" style="margin-bottom:16px">
     <section class="card gcard" style="margin:0"><div class="card-h"><h2>Vendas × meta do mês</h2><span class="sub">${M.mesR?pct(T.liq/M.mesR)+' da meta':'sem meta'}</span></div><div class="card-b">${M.mesR?gMeta(P,M.mesR):`<p class="muted">Defina a meta na aba <a href="#" class="fabMet">Metas</a>.</p>`}</div></section>
     <section class="card gcard" style="margin:0"><div class="card-h"><h2>Vendas por semana</h2><span class="sub">barra = vendido · traço = meta</span></div><div class="card-b">${M.mesR?gSemanas(M,T):`<p class="muted">Defina a meta na aba <a href="#" class="fabMet">Metas</a>.</p>`}</div></section></div>
+  ${fabLucroSaborHTML(T)}
   <section class="card gcard"><div class="card-h"><h2>Vendas por sabor</h2></div><div class="card-b">${gSabor(T)}</div></section>
   <section class="card" style="margin-bottom:16px"><div class="card-h"><h2>Detalhe por sabor</h2><span class="sub">pacotes de ${N2.format(pesoPac()*1000).replace(',00','')}g e a granel</span></div>
     <div class="tw"><table><thead><tr><th>Sabor</th><th>Pacotes</th><th>Kg granel</th><th>Kg total</th><th>Vendas líq.</th><th>R$/kg</th><th>% do kg</th></tr></thead><tbody>
@@ -2810,6 +2838,21 @@ function fabLingHTML(m){
     <tr class="tot"><td><b>Total</b></td><td>${N2.format(T.pacotes).replace(',00','')}</td><td>${N2.format(T.kgAvulso)}</td><td class="b">${N2.format(T.kg)}</td><td><b>${money(T.liq)}</b></td><td>${T.kg?money(T.liq/T.kg):'–'}</td><td>100%</td></tr>
     </tbody></table></div></section>`;
 }
+// v102: lucro por sabor = vendas depois dos descontos − custo das fichas técnicas (ingredientes, embalagem e o que a ficha tiver); depois, menos a comissão
+function fabLucroSaborHTML(T){ if(!T.has) return '';
+  const by={}; for(const x of T.linhas){ const k=x.p?x.p.id:'n:'+semAc(x.nome||'Sem nome'); const o=by[k]||(by[k]={nome:x.p?x.p.nome:capT(String(x.nome||'Sem nome').replace(/^LINGUI[CÇ]A\s+/i,'').replace(/\s*-?\s*\d+\s*g\b.*$/i,'').trim()),semFicha:!x.p,kg:0,bruto:0,desc:0,liq:0,cv:0,com:0}); o.kg+=x.kg; o.bruto+=+x.bruto||0; o.desc+=+x.desc||0; o.liq+=+x.liq||0; o.cv+=x.cv; o.com+=x.com; }
+  const R=Object.values(by).map(o=>({...o,luc:o.liq-o.cv,lucC:o.liq-o.cv-o.com})).sort((a,b)=>b.luc-a.luc), t=k=>sum(R,x=>x[k]);
+  const tot={kg:t('kg'),bruto:t('bruto'),desc:t('desc'),liq:t('liq'),cv:t('cv'),com:t('com'),luc:t('luc'),lucC:t('lucC')}, mx=Math.max(1,...R.map(x=>Math.abs(x.luc))), sf=R.filter(x=>x.semFicha);
+  return `<section class="card gcard fls"><div class="card-h"><h2>Lucro por sabor</h2><span class="sub">vendas depois dos descontos − custo da ficha técnica</span></div><div class="card-b">
+    <div class="fls-k"><div><small>Lucro total das linguiças</small><b class="${tot.luc<0?'neg':'pos'}">${money(tot.luc)}</b><span>${tot.liq?pct(tot.luc/tot.liq)+' das vendas':''} · ${tot.kg?money(tot.luc/tot.kg)+'/kg':''}</span></div>
+      <div><small>Depois da comissão</small><b class="${tot.lucC<0?'neg':''}">${money(tot.lucC)}</b><span>comissão ${money(tot.com)}</span></div>
+      <div><small>Descontos dados</small><b>${money(tot.desc)}</b><span>${tot.bruto?pct(tot.desc/tot.bruto)+' do valor cheio':''}</span></div>
+      <div><small>Custo das fichas</small><b>${money(tot.cv)}</b><span>${tot.liq?pct(tot.cv/tot.liq)+' das vendas':''}</span></div></div>
+    <div class="hbars" style="margin-top:14px">${R.map(x=>`<div class="hb" data-tip="<b>${esc(x.nome)}</b><br>vendas líquidas ${money(x.liq)}<br>custo da ficha ${money(x.cv)}<br>lucro ${money(x.luc)} (${x.liq?pct(x.luc/x.liq):'–'})${x.semFicha?'<br>sem ficha técnica: custo médio':''}"><div class="hb-l">${esc(x.nome)}${x.semFicha?' *':''}</div><div class="hb-t"><div style="width:${Math.abs(x.luc)/mx*100}%;${x.luc<0?'background:var(--bad)':''}"></div></div><div class="hb-v"><b class="${x.luc<0?'neg':''}">${money(x.luc)}</b><span>${x.liq?pct(x.luc/x.liq):'–'}</span></div></div>`).join('')}</div>
+    <div class="tw" style="margin-top:12px"><table><thead><tr><th>Sabor</th><th>Kg</th><th>Valor cheio</th><th>Descontos</th><th>Vendas líq.</th><th>Custo da ficha</th><th>Lucro</th><th>Margem</th><th>Lucro/kg</th><th>Comissão</th><th>Lucro depois da comissão</th></tr></thead><tbody>
+    ${R.map(x=>`<tr><td class="name"><b>${esc(x.nome)}</b>${x.semFicha?'<small>sem ficha: custo médio</small>':''}</td><td>${N2.format(x.kg)}</td><td>${money(x.bruto)}</td><td>${x.desc?money(x.desc):'–'}</td><td>${money(x.liq)}</td><td>${money(x.cv)}</td><td class="b ${x.luc<0?'neg':'pos'}">${money(x.luc)}</td><td>${x.liq?pct(x.luc/x.liq):'–'}</td><td>${x.kg?money(x.luc/x.kg):'–'}</td><td>${money(x.com)}</td><td class="b ${x.lucC<0?'neg':''}">${money(x.lucC)}</td></tr>`).join('')}
+    <tr class="tot"><td><b>Total</b></td><td>${N2.format(tot.kg)}</td><td>${money(tot.bruto)}</td><td>${money(tot.desc)}</td><td><b>${money(tot.liq)}</b></td><td>${money(tot.cv)}</td><td class="b ${tot.luc<0?'neg':'pos'}">${money(tot.luc)}</td><td>${tot.liq?pct(tot.luc/tot.liq):'–'}</td><td>${tot.kg?money(tot.luc/tot.kg):'–'}</td><td>${money(tot.com)}</td><td class="b">${money(tot.lucC)}</td></tr></tbody></table></div>
+    <p class="muted sm" style="margin:8px 0 0">Custo da ficha = kg vendidos × custo por kg da ficha técnica de cada sabor (aba Fichas técnicas). Ainda não entram as despesas fixas da fábrica (aluguel, salários, energia): elas estão no resultado da fábrica.${sf.length?` * ${sf.length} produto(s) sem ficha técnica usam o custo médio das fichas.`:''}</p></div></section>`; }
 function fabMetasHTML(m){
   const M=metasMes(m), T=resumoVend(m), x=dreCC(m).C.fab, mcp=x.rec?x.mc/x.rec:0;
   const realSem=w=>sum(T.dias.filter(d=>d.d>=w.ini&&d.d<=w.fim),d=>d.liq), kgSem=w=>sum(T.dias.filter(d=>d.d>=w.ini&&d.d<=w.fim),d=>d.kg);
@@ -5211,6 +5254,68 @@ function vLjPdf(){ const e=S.emp==='hold'?(S._pdfE||'c002'):S.emp, A=S.emp==='ho
   </div>`;
   bindMesNav(vLjPdf); $('#pdfLoja')?.addEventListener('change',ev=>{ S._pdfE=ev.target.value; vLjPdf(); });
   $('#pdfGo').addEventListener('click',()=>{ const t0=document.title; document.title=`Relatorio ${e.toUpperCase()} ${m}`; document.body.classList.add('pr-lj'); window.print(); setTimeout(()=>{ document.body.classList.remove('pr-lj'); document.title=t0; },600); }); }
+// ================= v102: TABELAS DE PREÇO (Distribuidora, Mercado…) — na tela de Margens =================
+// Preço do pacote = custo variável do pacote (ingredientes + custos variáveis da ficha) ÷ (1 − margem da tabela), arredondado para cima.
+const TP_TIPOS={distribuidora:['Distribuidora',0.15],mercado:['Mercado',0.25],outro:['Outro cliente',0.20]};
+const tpLista=()=>Array.isArray(S.config.tabelas)?S.config.tabelas:[];
+const tpSalvar=L=>{ S.config={...S.config,tabelas:L}; save(); };
+const tpArr=(v,a)=>{ a=+a||0.1; return Math.ceil(v/a-1e-9)*a; };
+function tpPrecos(t){ return S.produtos.map(p=>{ const r=calc(p), it=(t.itens||{})[p.id]||{}, calcP=r.cv>0&&t.margem<1?tpArr(r.cv/(1-t.margem),t.arred):0, man=+it.preco||0, preco=man||calcP;
+  return {p,r,on:it.on!==false,calc:calcP,man,preco,mg:preco?(preco-r.cv)/preco:0,nome:(it.nome||p.nome)}; }); }
+const tpPesoTxt=()=>{ const g=Math.round(pesoPac()*1000); return g>=1000?N2.format(g/1000).replace(',00','')+' kg':g+' g'; };
+const tpValid=t=>{ const d=new Date(); d.setDate(d.getDate()+(+t.validade||15)); return dIso(d); };
+function tpHTML(){ const L=tpLista(), sel=L.find(t=>t.id===S._tpSel)||L[0], pode=S.canWrite;
+  return `<section class="card tp" style="margin-top:16px"><div class="card-h"><h2>Tabelas de preço</h2><span class="sub">para Distribuidora, Mercado e outros clientes · pacote de ${tpPesoTxt()}</span></div><div class="card-b">
+  <div class="tp-tabs">${L.map(t=>`<button class="tp-tab ${sel&&t.id===sel.id?'on':''}" data-tps="${esc(t.id)}">${esc(t.nome)}<small>${pct(t.margem)}</small></button>`).join('')}
+    ${pode?`<select class="in tp-nova" id="tpNova"><option value="">+ Nova tabela</option>${Object.entries(TP_TIPOS).map(([k,[n,m]])=>`<option value="${k}">${n} (${pct(m).replace(',0%','%')})</option>`).join('')}</select>`:''}</div>
+  ${!sel?`<p class="muted" style="margin:12px 0 0">Nenhuma tabela ainda. ${pode?'Escolha "+ Nova tabela" para criar a da Distribuidora.':''}</p>`:tpCorpo(sel,pode)}
+  </div></section>`; }
+function tpCorpo(t,pode){ const R=tpPrecos(t), env=t.enviado||null, mud=env?R.filter(x=>x.on&&env.precos&&env.precos[x.p.id]!=null&&Math.abs(env.precos[x.p.id]-x.preco)>0.004):[];
+  return `<div class="tp-cfg">
+    <label class="field"><span class="lbl">Nome da tabela (vai no arquivo)</span><input class="in" id="tpNome" value="${esc(t.nome)}"${dis()}></label>
+    <label class="field"><span class="lbl">Margem sobre o preço</span><span class="tp-pc">${numIn('tpMg',t.margem*100)}<em>%</em></span></label>
+    <label class="field"><span class="lbl">Arredondar para cima</span><select class="in" id="tpArr"${dis()}>${[[0.01,'R$ 0,01'],[0.1,'R$ 0,10'],[0.5,'R$ 0,50'],[1,'R$ 1,00']].map(([v,n])=>`<option value="${v}" ${+t.arred===v?'selected':''}>${n}</option>`).join('')}</select></label>
+    <label class="field"><span class="lbl">Validade (dias)</span>${numIn('tpVal',+t.validade||15)}</label>
+    <label class="field tp-obs"><span class="lbl">Observação no arquivo (opcional)</span><input class="in" id="tpObs" value="${esc(t.obs||'')}" placeholder="ex.: pedido mínimo 20 pacotes · entrega às terças"${dis()}></label></div>
+  <div class="tw" style="margin-top:12px"><table class="tp-t"><thead><tr><th>No arquivo</th><th style="text-align:left">Produto</th><th>Custo do pacote</th><th>Preço calculado</th><th>Preço que vale</th><th>Margem</th><th>Varejo hoje</th></tr></thead><tbody>
+  ${R.map(x=>`<tr class="${x.on?'':'off'}"><td><input type="checkbox" data-tpon="${esc(x.p.id)}" ${x.on?'checked':''}${dis()}></td><td class="name" style="text-align:left"><b>${esc(x.nome)}</b>${x.r.cv>0?'':'<small class="neg">ficha sem custo</small>'}</td><td class="muted">${money(x.r.cv)}</td><td>${x.calc?money(x.calc):'–'}</td>
+    <td><input class="in num tp-man" data-tpman="${esc(x.p.id)}" inputmode="decimal" placeholder="${x.calc?fmtIn(x.calc):''}" value="${x.man?esc(fmtIn(x.man)):''}"${dis()}>${x.man?'<small>digitado</small>':''}</td>
+    <td class="b ${x.mg<t.margem-0.005?'neg':''}">${x.preco?pct(x.mg):'–'}</td><td class="muted">${x.r.preco?money(x.r.preco):'–'}${x.r.preco&&x.preco>=x.r.preco?'<small class="neg">acima do varejo</small>':''}</td></tr>`).join('')}
+  </tbody></table></div>
+  <p class="muted sm" style="margin:8px 0 0">Preço calculado = custo do pacote (ingredientes + custos variáveis da ficha técnica) ÷ (1 − ${pct(t.margem)}). Para usar outro preço, digite em "Preço que vale". Desmarque o que não vai no arquivo. Os custos fixos da fábrica não entram nesta conta.</p>
+  ${env?`<p class="sm" style="margin:10px 0 0">Último arquivo baixado: <b>${abQuando(env.em)}</b>${mud.length?` · <span class="neg">${mud.length} preço(s) mudaram desde então (o custo da ficha mudou): baixe de novo e mande a tabela atualizada.</span>`:' · <span class="pos">preços iguais aos de hoje</span>'}</p>`:''}
+  <div class="tp-acts"><button class="btn primary" id="tpPdf">📄 Baixar PDF</button><button class="btn" id="tpPng">🖼 Baixar imagem</button>${pode?'<button class="btn ghost" id="tpDel">Apagar tabela</button>':''}</div>
+  <div class="tp-prev"><span class="muted sm">Como fica o arquivo</span>${tpDocHTML(t,R)}</div>`; }
+function tpDocHTML(t,R){ const it=R.filter(x=>x.on&&x.preco>0);
+  return `<div class="tpdoc"><div class="tpdoc-h"><b>Fazenda Chalé de Ouro</b><span>Tabela de preços · ${esc(t.nome)}</span></div>
+    <table><thead><tr><th>Produto</th><th>Pacote ${tpPesoTxt()}</th></tr></thead><tbody>${it.map(x=>`<tr><td>Linguiça ${esc(x.nome)}</td><td>${money(x.preco)}</td></tr>`).join('')||'<tr><td colspan="2">Nenhum produto marcado.</td></tr>'}</tbody></table>
+    <div class="tpdoc-f">Preços válidos até ${dataBR(tpValid(t))}/${tpValid(t).slice(0,4)}${t.obs?' · '+esc(t.obs):''}</div></div>`; }
+function tpPNG(t,R){ const it=R.filter(x=>x.on&&x.preco>0), W=1080, lh=86, top=250, H=top+lh*(it.length+1)+150, c=document.createElement('canvas'); c.width=W; c.height=H; const g=c.getContext('2d');
+  g.fillStyle='#FFFDF8'; g.fillRect(0,0,W,H); g.fillStyle='#B8862F'; g.fillRect(0,0,W,14);
+  g.fillStyle='#2B2118'; g.font='bold 54px Georgia, serif'; g.fillText('Fazenda Chalé de Ouro',70,110); g.fillStyle='#6B5A36'; g.font='36px Arial, sans-serif'; g.fillText('Tabela de preços · '+t.nome,70,168);
+  g.fillStyle='#F3EBDB'; g.fillRect(50,top-58,W-100,lh-10); g.fillStyle='#6B5A36'; g.font='bold 30px Arial, sans-serif'; g.fillText('PRODUTO',80,top-6); const ph='PACOTE '+tpPesoTxt().toUpperCase(); g.fillText(ph,W-80-g.measureText(ph).width,top-6);
+  it.forEach((x,i)=>{ const y=top+lh*(i+1)-6; g.fillStyle='#2B2118'; g.font='38px Arial, sans-serif'; g.fillText('Linguiça '+x.nome,80,y); g.font='bold 42px Arial, sans-serif'; const pr=money(x.preco); g.fillText(pr,W-80-g.measureText(pr).width,y); g.strokeStyle='#E8DFCC'; g.lineWidth=2; g.beginPath(); g.moveTo(60,y+28); g.lineTo(W-60,y+28); g.stroke(); });
+  g.fillStyle='#6B5A36'; g.font='28px Arial, sans-serif'; const f='Preços válidos até '+dataBR(tpValid(t))+'/'+tpValid(t).slice(0,4); g.fillText(f,70,H-80); if(t.obs){ g.font='26px Arial, sans-serif'; g.fillText(String(t.obs).slice(0,70),70,H-40); }
+  return c; }
+function tpMarcar(t,R){ const L=tpLista().map(x=>x.id===t.id?{...x,enviado:{em:new Date().toISOString(),por:CLOUD.email||'',precos:Object.fromEntries(R.filter(y=>y.on).map(y=>[y.p.id,y.preco]))}}:x); if(S.canWrite) tpSalvar(L); }
+function tpBind(){ const L=tpLista(), t=L.find(x=>x.id===S._tpSel)||L[0], upd=(f)=>{ if(!S.canWrite||!t) return; tpSalvar(tpLista().map(x=>x.id===t.id?f({...x,itens:{...(x.itens||{})}}):x)); setTimeout(tpRender,0); };
+  $$('[data-tps]').forEach(b=>b.addEventListener('click',()=>{ S._tpSel=b.dataset.tps; tpRender(); }));
+  $('#tpNova')?.addEventListener('change',e=>{ const k=e.target.value; if(!k) return; const [n,m]=TP_TIPOS[k], id='tp'+Date.now().toString(36); tpSalvar([...tpLista(),{id,tipo:k,nome:n,margem:m,arred:0.1,validade:15,obs:'',itens:{},criado:new Date().toISOString(),por:CLOUD.email||''}]); S._tpSel=id; tpRender(); });
+  if(!t) return;
+  $('#tpNome')?.addEventListener('change',e=>upd(x=>({...x,nome:e.target.value.trim()||x.nome})));
+  $('#tpMg')?.addEventListener('change',e=>{ const v=parseNum(e.target.value)/100; if(!(v>=0&&v<0.95)) return toast('Margem entre 0% e 95%.'); upd(x=>({...x,margem:v})); });
+  $('#tpArr')?.addEventListener('change',e=>upd(x=>({...x,arred:+e.target.value})));
+  $('#tpVal')?.addEventListener('change',e=>upd(x=>({...x,validade:Math.max(1,Math.round(parseNum(e.target.value)||15))})));
+  $('#tpObs')?.addEventListener('change',e=>upd(x=>({...x,obs:e.target.value.trim()})));
+  $$('[data-tpon]').forEach(i=>i.addEventListener('change',()=>upd(x=>{ const k=i.dataset.tpon; x.itens[k]={...(x.itens[k]||{}),on:i.checked}; return x; })));
+  $$('[data-tpman]').forEach(i=>i.addEventListener('change',()=>upd(x=>{ const k=i.dataset.tpman, v=parseNum(i.value); x.itens[k]={...(x.itens[k]||{}),preco:v>0?Math.round(v*100)/100:null}; return x; })));
+  $('#tpDel')?.addEventListener('click',e=>{ const b=e.target; if(b.dataset.ok!=='1'){ b.dataset.ok='1'; b.textContent='Clique de novo para apagar'; b.classList.add('danger'); return; } tpSalvar(tpLista().filter(x=>x.id!==t.id)); S._tpSel=null; tpRender(); });
+  const nomeArq='Tabela de precos '+t.nome+' '+hoje();
+  $('#tpPdf')?.addEventListener('click',()=>{ const R=tpPrecos(t); if(!R.some(x=>x.on&&x.preco>0)) return toast('Marque pelo menos um produto.'); let w=$('#tpPrint'); if(!w){ w=document.createElement('div'); w.id='tpPrint'; document.body.appendChild(w); } w.innerHTML=tpDocHTML(t,R);
+    const t0=document.title; document.title=nomeArq; document.body.classList.add('pr-tp'); window.print(); setTimeout(()=>{ document.body.classList.remove('pr-tp'); document.title=t0; },600); tpMarcar(t,R); setTimeout(tpRender,700); });
+  $('#tpPng')?.addEventListener('click',()=>{ const R=tpPrecos(t); if(!R.some(x=>x.on&&x.preco>0)) return toast('Marque pelo menos um produto.'); const c=tpPNG(t,R);
+    c.toBlob(bl=>{ const a=document.createElement('a'); a.href=URL.createObjectURL(bl); a.download=nomeArq+'.png'; document.body.appendChild(a); a.click(); setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); },800); toast('Imagem baixada'); tpMarcar(t,R); setTimeout(tpRender,300); },'image/png'); }); }
+function tpRender(){ const box=$('#tpBody'); if(!box||!box.isConnected) return; box.innerHTML=tpHTML(); tpBind(); }
 // ================= v102: BACKUP COMPLETO DO GRUPO (na Holding) =================
 // Uma cópia só, com tudo: Fazenda (fichas, configurações, lançamentos, vendas e relatórios), C002, C003, o resumo da Fazenda e os usuários.
 // Fica em empresas/hold/dados (as regras atuais já deixam o administrador principal gravar ali). Só o administrador principal faz e restaura.
