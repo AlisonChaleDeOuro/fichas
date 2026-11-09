@@ -1279,6 +1279,20 @@ body.empm .lj-dot{color:var(--muted)!important}
 .nav .nv-dot{width:8px;height:8px;border-radius:50%;flex:none}
 @media(min-width:861px){#subnav .nv-sub{display:none!important}}
 @media(max-width:860px){.nav .nv-g{display:contents}.nav .nv-its,.nav .nv-seta{display:none!important}}
+.fe-ms{grid-template-columns:repeat(auto-fill,minmax(122px,1fr))!important}
+.fe-m{min-width:0}
+.fe-m b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fe-m b{font-size:14px}
+@media(max-width:860px){
+ .nav .nv-h{flex:1 0 auto!important;width:auto!important;min-width:64px!important;padding:6px 8px!important}
+ .nav{justify-content:flex-start;overflow-x:auto!important}
+ .st-cent{grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important;gap:10px!important}
+ .stc{padding:14px!important;min-width:0}
+ .stc b{font-size:20px!important;overflow-wrap:anywhere}
+ .ulist,.ulist *{min-width:0;overflow-wrap:anywhere}
+}
+.pe-mark span{transform:translateX(-100%)!important;left:auto!important;right:0}
+.st-in{overflow-x:clip}
 /* v108: logos e entrada */
 img.lg-ch{object-fit:contain!important;background:#fff}
 .brand img#logo2{margin-left:-4px}
@@ -2168,7 +2182,7 @@ function granjaPainel(m){
   </section>`; }
 function blocoPorco(){ const m=S.mes, M=mercadoPorco(m), man=ccCfg().precoGranja, temMan=man!=null&&man!==''; const P=precoGranja(m);
   const D=dreCC(m), x=D.C.suin, kg=x.kgGranja||0, custo=x.cmv+x.dv+x.df+x.com, aco=D.C.aco;
-  return `<section class="card cfwide"><div class="card-h"><h2>🐖 Preço do kg do porco da granja</h2><span class="sub">quanto a granja cobra do Açougue · ${mesLbl(m)}</span></div><div class="card-b">
+  return `<section class="card cfwide"><div class="card-h"><h2>Preço do kg do porco da granja</h2><span class="sub">quanto a granja cobra do Açougue · ${mesLbl(m)}</span></div><div class="card-b">
     <div class="tw"><table><thead><tr><th style="text-align:left">Mês</th><th>Pago aos fornecedores</th><th>kg comprados</th><th>R$/kg</th></tr></thead><tbody>
     ${M.meses.map(r=>`<tr><td style="text-align:left">${mesLbl(r.m)}</td><td>${money(r.rs)}</td><td>${N2.format(r.kg)} kg</td><td>${r.p!=null?money(r.p):'–'}</td></tr>`).join('')}
     <tr class="fim"><td style="text-align:left">⭐ Média dos 3 meses</td><td>${money(M.meses.reduce((s,r)=>s+r.rs,0))}</td><td>${N2.format(M.meses.reduce((s,r)=>s+r.kg,0))} kg</td><td>${M.media!=null?money(M.media):'–'}</td></tr></tbody></table></div>
@@ -2206,7 +2220,7 @@ function blocoCarne(){
     <div class="ccar-h"><b>${nome}</b><span class="ccar-v">${money(usado)}<small>/kg</small></span><span class="pill ${man?'warn':'ok'}">${man?'manual':'automático'}</span></div>
     <div class="ccar-c">Pago em carcaça <b>${money(rin)}</b>${extra||''} ÷ carne que saiu <b>${N2.format(kout)} kg</b> = <b>${isFinite(auto)?money(auto):'–'}/kg</b> · aproveitamento ${isFinite(apr)?pct(apr):'–'} (${N2.format(kin)} kg de carcaça)</div>
     <div class="ccar-m"><label class="cfgf" style="margin:0"><span class="lbl">Definir manualmente (deixe vazio = automático)</span><span class="cfgin"><input class="in num cfMan" data-t="${id}" inputmode="decimal" placeholder="${isFinite(auto)?N2.format(auto):''}" value="${man?N2.format(usado):''}"${dis()}><em>R$/kg</em></span></label></div></div>`;
-  return `<section class="card cfwide"><div class="card-h"><h2>🥩 Custo da carne</h2><span class="sub">custo real de ${per} · ${mesLbl(m)}</span></div><div class="card-b">
+  return `<section class="card cfwide"><div class="card-h"><h2>Custo da carne</h2><span class="sub">custo real de ${per} · ${mesLbl(m)}</span></div><div class="card-b">
     <label class="cfchk"><input type="checkbox" id="cfTr" ${(ccCfg().transfCarne??true)?'checked':''}${dis()}> <b>Cobrar da fábrica a carne que ela usa</b> <span class="muted sm">· a fábrica paga, o açougue recebe; o resultado da empresa não muda</span></label>
     ${linha('bov','Carne bovina',c.bov,p.bov,p.manB,c.bkg,c.brs,c.ob,c.aprB,'')}
     ${linha('sui','Carne suína',c.sui,p.sui,p.manS,c.skg,c.srsTot,c.os,c.aprS,c.granja?` <span class="muted">(inclui ${N2.format(c.granja)} kg da granja ao preço do porco da granja)</span>`:'')}
@@ -3161,7 +3175,7 @@ function novosPrazoHTML(m){ const C=clientesLing(), o=C.porMes[m]; if(!o||!o.tot
   if(m===C.primeiro) return `<section class="card nvp"><div class="card-h"><h2>Clientes novos</h2><span class="sub">${mesLbl(m)}</span></div><div class="card-b"><p class="muted">${mesLbl(m)} é o primeiro mês do histórico. Cole o Pedidos de Venda desde o mês anterior para saber quem é cliente novo.</p></div></section>`;
   const R=recebimentoMesCli(m);
   const nov=Object.values(o.novos).map(c=>({...c,r:c.r||0,st:R[semAc(c.nome)]})).sort((a,b)=>(b.r>0.005)-(a.r>0.005)||b.r-a.r||b.v-a.v), n=nov.length, tv=nov.reduce((s,c)=>s+c.v,0), tr=nov.reduce((s,c)=>s+c.r,0), nR=nov.filter(c=>c.r>0.005).length, ab=nov.reduce((s,c)=>s+((c.st||{}).ab||0),0);
-  return `<section class="card nvp"><div class="card-h"><h2>🤝 Clientes novos</h2><span class="sub">compraram linguiça pela primeira vez · ${mesLbl(m)}</span></div><div class="card-b">
+  return `<section class="card nvp"><div class="card-h"><h2>Clientes novos</h2><span class="sub">compraram linguiça pela primeira vez · ${mesLbl(m)}</span></div><div class="card-b">
     <div class="nvp-k">
       <div><b>${n}</b><span>clientes novos</span></div>
       <div><b>${money(tv)}</b><span>compraram no mês · ${pctL(o.tot?tv/o.tot:0)} das vendas</span></div>
@@ -3312,22 +3326,22 @@ function vAjustes(){
   const campo=(id,lbl,val,suf,dica)=>`<label class="cfgf"><span class="lbl">${lbl}</span><span class="cfgin"><input class="in num" id="${id}" inputmode="decimal" value="${esc(val)}"${dis()}>${suf?`<em>${suf}</em>`:''}</span>${dica?`<small>${dica}</small>`:''}</label>`;
   view.innerHTML=`<div class="phead"><div><span class="area prod">Configurar</span><br><h1>Configurações</h1></div></div>
   <div class="cfgrid">
-    <section class="card"><div class="card-h"><h2>🎁 Bônus da produção</h2><a href="#" class="note" data-go="bonus">setores e pessoas →</a></div><div class="card-b">
+    <section class="card"><div class="card-h"><h2>Bônus da produção</h2><a href="#" class="note" data-go="bonus">setores e pessoas →</a></div><div class="card-b">
       ${campo('cfBonus','Valor do bônus por kg vendido',N3.format(b.valorKg),'R$/kg')}
     </div></section>
-    <section class="card"><div class="card-h"><h2>🧾 Comissão</h2><a href="#" class="note" data-go="produtos">% por produto →</a></div><div class="card-b">
+    <section class="card"><div class="card-h"><h2>Comissão</h2><a href="#" class="note" data-go="produtos">% por produto →</a></div><div class="card-b">
       ${campo('cfComPad','Comissão de produto novo (fora da tabela)',N3.format((cc.comPad!=null?+cc.comPad:0)*100),'%')}
       <label class="cfgf"><span class="lbl">Clientes que não geram comissão nem bônus</span><input class="in" id="cfInt" value="${esc(internos().join(', '))}"${dis()}><small>O nome do cliente contém. Separe por vírgula.</small></label>
     </div></section>
-    <section class="card"><div class="card-h"><h2>🌭 Fábrica</h2></div><div class="card-b">
+    <section class="card"><div class="card-h"><h2>Fábrica</h2></div><div class="card-b">
       ${campo('cfPeso','Peso do pacote',N3.format((+c.peso||0.4)*1000),'g')}
     </div></section>
     ${blocoPorco()}
     ${blocoCarne()}
-    <section class="card"><div class="card-h"><h2>📅 Relatórios</h2></div><div class="card-b">
+    <section class="card"><div class="card-h"><h2>Relatórios</h2></div><div class="card-b">
       <label class="cfgf"><span class="lbl">Mês inicial das análises</span><input class="in" type="month" id="cfIni" value="${esc(INICIO())}"${dis()}></label>
     </div></section>
-    <section class="card"><div class="card-h"><h2>⚖️ Divisão AGRO</h2></div><div class="card-b">
+    <section class="card"><div class="card-h"><h2>Divisão AGRO</h2></div><div class="card-b">
       <p class="note" style="margin-top:0">% da fábrica e do açougue em cada despesa do AGRO.</p><button class="btn primary" data-go="divisao">Abrir divisão das despesas →</button>
     </div></section>
   </div>`+tipoBloco();
@@ -4883,7 +4897,7 @@ const abQuando=iso=>{ const d=new Date(iso); return isNaN(d)?'–':dataBR(iso.sl
 const abMot={diaria:'Cópia automática do dia',importar:'Antes de importar um arquivo',restaurar:'Antes de restaurar uma cópia',manual:'Feita por você'};
 function abCardHTML(){ if(!CLOUD.fs) return '';
   const L=S._abLista, ult=L&&L[0];
-  return `<section class="card abk" style="margin-bottom:16px"><div class="card-h"><h2>🛡️ Cópias automáticas na nuvem</h2><span class="sub">${ult?`última: <b>${abQuando(ult.em)}</b>`:L?'nenhuma cópia ainda':'carregando…'}</span></div><div class="card-b">
+  return `<section class="card abk" style="margin-bottom:16px"><div class="card-h"><h2>Cópias automáticas na nuvem</h2><span class="sub">${ult?`última: <b>${abQuando(ult.em)}</b>`:L?'nenhuma cópia ainda':'carregando…'}</span></div><div class="card-b">
     <p class="note" style="margin-top:0">O sistema faz <b>sozinho uma cópia completa por dia</b> (fichas, configurações, relatórios, vendas e lançamentos) e guarda as dos últimos ${AB_DIAS} dias. Também faz uma cópia <b>antes de qualquer importação ou restauração</b>. Se algo der errado, é só restaurar.</p>
     ${S.perfil==='admin'?`<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px"><button class="btn primary" id="abAgora"${dis()}>Fazer uma cópia agora</button></div>`:''}
     ${L&&L.length?`<div class="tw"><table class="abt"><thead><tr><th style="text-align:left">Quando</th><th style="text-align:left">Tipo</th><th>Fichas</th><th>Tamanho</th><th></th></tr></thead><tbody>${L.map(x=>`<tr><td style="text-align:left"><b>${abQuando(x.em)}</b></td><td style="text-align:left">${abMot[x.motivo]||x.motivo}</td><td>${x.fichas??'–'}</td><td>${(x.tam/1048576).toFixed(1).replace('.',',')} MB</td>
@@ -6092,6 +6106,7 @@ const NV_DE={inicio:'inicio',
   hd_conc:'loj',hd_err:'loj',hd_pgto:'fin',hd_fech:'fec',hd_bk:'cfg'};
 const NV_NOME={inicio:'Início',cc_junc:'Empresa',cc_fab:'Fábrica',cc_aco:'Açougue',cc_hort:'Hortifruti',cc_suin:'Suínos',pmetas:'Metas',ajustes:'Geral',relatorios:'Colar relatórios do Sischef',lj_rel:'Colar relatórios do Sischef',hd_conc:'Conciliação'};
 const NV_ICO={res:['a_analises','resultado'],ven:['a_pmetas','metas'],fin:['a_fxcaixa','a_lj_pag'],pro:['a_fichas'],fec:['a_lj_fech'],rel:['relatorios','a_lj_rel'],cfg:['a_config'],com:['a_lj_cmc'],loj:['a_hd_conc'],inicio:['a_inicio']};
+const NV_CURTO={pro:'Produção',cfg:'Ajustes',ven:'Vendas',res:'Resultado',fin:'Financeiro',fec:'Fechamento',rel:'Relatórios',loj:'Lojas',com:'Compras'};
 const nvTipo=()=>S.emp==='hold'?'hold':(S.emp&&S.emp!=='faz')?'loja':'faz';
 const nvCel=()=>window.matchMedia('(max-width:860px)').matches;
 function nvMontar(){ const A=NAVS[S.neg].areas, G=NV_GRUPOS[nvTipo()].map(([k,n])=>({k,n,its:[]})), porK=Object.fromEntries(G.map(g=>[g.k,g]));
@@ -6110,15 +6125,16 @@ function renderNav(){
   const bdg=id=>{ if(!Dn||!id.startsWith('cc_')) return ''; const k=id.slice(3), x=k==='junc'?Dn.J:Dn.C[k]; if(!x||(!x.rec&&Math.abs(x.res||0)<0.5)) return ''; const v=x.res, t=Math.abs(v)>=1000?(Math.abs(v)/1000).toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1})+' mil':Math.round(Math.abs(v)); return `<em class="nbdg ${v<0?'n':''}">${v<0?'−':'+'}${t}</em>`; };
   const dot=v=>v.startsWith('cc_')?`<i class="nv-dot" style="background:${v==='cc_junc'?'#C9963A':cCor(v.slice(3))}"></i>`:'';
   const seta='<svg class="nv-seta" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>';
-  nav.innerHTML=G.map(g=>{ const so=g.its.length===1, aqui=g===atual, ab=!so&&S.nvAb===g.k, nome=g.n||g.its[0].l;
+  nav.innerHTML=G.map(g=>{ const so=g.its.length===1, aqui=g===atual, ab=!so&&S.nvAb===g.k, nome=(nvCel()&&NV_CURTO[g.k])||g.n||g.its[0].l;
     return `<div class="nv-g${ab?' ab':''}"><button data-area="${g.k}" data-nvg="${g.k}" class="nv-h" aria-current="${aqui&&(so||nvCel())?'page':'false'}"${so?'':` aria-expanded="${ab}"`}>${nvIcone(g)}<span>${esc(nome)}</span>${so?'':seta}</button>${so?'':`<div class="nv-its">${g.its.map(i=>`<button data-view="${i.v}" class="nv-i" aria-current="${i.v===S.view?'page':'false'}">${dot(i.v)}<span>${esc(i.l)}</span>${bdg(i.v)}</button>`).join('')}</div>`}</div>`; }).join('');
   $$('#nav [data-nvg]').forEach(b=>b.addEventListener('click',()=>{ const g=G.find(x=>x.k===b.dataset.nvg); if(!g) return;
     if(g.its.length===1||nvCel()){ const last=(S.nvUlt||{})[g.k]; return go2(last&&g.its.some(i=>i.v===last)?last:g.its[0].v); }
     S.nvAb=S.nvAb===g.k?null:g.k; renderNav(); }));
   $$('#nav .nv-i').forEach(b=>b.addEventListener('click',()=>go2(b.dataset.view)));
+  if(nvCel()){ const c=nav.querySelector('.nv-h[aria-current="page"]'); if(c&&nav.scrollWidth>nav.clientWidth) nav.scrollLeft=Math.max(0,c.offsetLeft-nav.clientWidth/2+c.offsetWidth/2); }
   S.nvUlt={...(S.nvUlt||{}),[atual.k]:S.view}; S.ultAba={...(S.ultAba||{}),[ar[0]]:S.view};
   let sn=document.getElementById('subnav'); if(!sn){ sn=document.createElement('div'); sn.id='subnav'; view.parentNode.insertBefore(sn,view); }
-  view.parentNode.classList.toggle('cfgl',ar[0]==='config');
+  view.parentNode.classList.remove('cfgl'); // v108: o menu do grupo fica na lateral; a tela ocupa o centro
   sn.innerHTML=atual.its.length>1?`<div class="subnav nv-sub"><span class="sn-t">${esc(atual.n)}</span>${atual.its.map(i=>`<button data-view="${i.v}" class="${i.v===S.view?'on':''}">${esc(i.l)}</button>`).join('')}</div>`:'';
   $$('#subnav button[data-view]').forEach(b=>b.addEventListener('click',()=>go2(b.dataset.view)));
 }
